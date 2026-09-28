@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#13202C">
+<meta name="theme-color" content="#0F2E33">
 <title>Maintenance System</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -11,10 +11,10 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <style>
 :root{
-  --bg:#EDF1F4; --surface:#FFFFFF; --surface-2:#F5F8FA; --ink:#13202C; --ink-2:#4B5C6B; --ink-3:#7A8A98;
-  --line:#D6DEE5; --accent:#0B6E99; --accent-soft:#E1EFF6; --accent-ink:#FFFFFF;
-  --side:#13202C; --side-ink:#C9D6E1; --side-hi:#FFFFFF; --hazard:#E8A317;
-  --ok:#1F8A5B; --ok-soft:#E2F3EA; --warn:#B87D00; --warn-soft:#FBF0D6; --bad:#C23B3B; --bad-soft:#F9E3E3;
+  --bg:#EEF4F3; --surface:#FFFFFF; --surface-2:#F4F8F7; --ink:#0F2E33; --ink-2:#45605F; --ink-3:#748B8A;
+  --line:#D3E0DE; --accent:#0E7C7B; --accent-soft:#DDF0EE; --accent-ink:#FFFFFF;
+  --side:#0F2E33; --side-ink:#BFD6D4; --side-hi:#FFFFFF; --hazard:#F2B544;
+  --ok:#2E8B57; --ok-soft:#E0F2E7; --warn:#B7791F; --warn-soft:#FDF1D8; --bad:#C0392B; --bad-soft:#FBE4E1;
   --info:#3A5FC0; --info-soft:#E4EAF9; --mute-soft:#E9EDF1;
   --shadow:0 1px 2px rgba(19,32,44,.06),0 4px 16px rgba(19,32,44,.06);
   --r:10px; --font:"IBM Plex Sans Thai",system-ui,-apple-system,"Segoe UI",Tahoma,sans-serif;
@@ -22,17 +22,17 @@
   color-scheme:light;
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
-  --bg:#0E151C; --surface:#16202A; --surface-2:#1B2733; --ink:#E3EBF1; --ink-2:#A2B3C2; --ink-3:#72859A;
-  --line:#2A3948; --accent:#43A7D8; --accent-soft:#16344A; --accent-ink:#06141D;
-  --side:#0A1117; --side-ink:#9FB1C1; --side-hi:#FFFFFF;
-  --ok:#43BE88; --ok-soft:#133426; --warn:#E3B03A; --warn-soft:#3A2E10; --bad:#EE7373; --bad-soft:#3D1A1C;
+  --bg:#0B1A1C; --surface:#112528; --surface-2:#16302F; --ink:#E2EFEE; --ink-2:#9DBAB8; --ink-3:#6E8C8A;
+  --line:#22403F; --accent:#3CC2BE; --accent-soft:#11393A; --accent-ink:#04201F;
+  --side:#081416; --side-ink:#9DBAB8; --side-hi:#FFFFFF;
+  --ok:#4CC38A; --ok-soft:#12362A; --warn:#EDB94A; --warn-soft:#3A2D10; --bad:#F07A6E; --bad-soft:#3D1C19;
   --info:#7E9CF0; --info-soft:#1C2847; --mute-soft:#223040; --shadow:0 1px 2px rgba(0,0,0,.3);
   color-scheme:dark;}}
 :root[data-theme="dark"]{
-  --bg:#0E151C; --surface:#16202A; --surface-2:#1B2733; --ink:#E3EBF1; --ink-2:#A2B3C2; --ink-3:#72859A;
-  --line:#2A3948; --accent:#43A7D8; --accent-soft:#16344A; --accent-ink:#06141D;
-  --side:#0A1117; --side-ink:#9FB1C1; --side-hi:#FFFFFF;
-  --ok:#43BE88; --ok-soft:#133426; --warn:#E3B03A; --warn-soft:#3A2E10; --bad:#EE7373; --bad-soft:#3D1A1C;
+  --bg:#0B1A1C; --surface:#112528; --surface-2:#16302F; --ink:#E2EFEE; --ink-2:#9DBAB8; --ink-3:#6E8C8A;
+  --line:#22403F; --accent:#3CC2BE; --accent-soft:#11393A; --accent-ink:#04201F;
+  --side:#081416; --side-ink:#9DBAB8; --side-hi:#FFFFFF;
+  --ok:#4CC38A; --ok-soft:#12362A; --warn:#EDB94A; --warn-soft:#3A2D10; --bad:#F07A6E; --bad-soft:#3D1C19;
   --info:#7E9CF0; --info-soft:#1C2847; --mute-soft:#223040; --shadow:0 1px 2px rgba(0,0,0,.3);
   color-scheme:dark;}
 *{box-sizing:border-box}
@@ -56,14 +56,14 @@ button,input,select,textarea{font:inherit;color:inherit}
 /* ---------- login ---------- */
 .login{min-height:100vh;min-height:100dvh;display:grid;grid-template-columns:1.1fr 1fr}
 .login-art{background:var(--side);color:var(--side-ink);padding:48px clamp(24px,5vw,64px);display:flex;flex-direction:column;justify-content:space-between;gap:32px;position:relative;overflow:hidden}
-.login-art::after{content:"";position:absolute;left:0;right:0;bottom:0;height:10px;background:repeating-linear-gradient(-45deg,var(--hazard) 0 14px,#13202C 14px 28px)}
+.login-art::after{content:"";position:absolute;left:0;right:0;bottom:0;height:10px;background:repeating-linear-gradient(-45deg,var(--hazard) 0 14px,var(--side) 14px 28px)}
 .login-art h1{color:#fff;font-size:clamp(26px,3.4vw,38px);font-weight:700;max-width:16ch}
 .login-art p{max-width:46ch}
 .brand{display:flex;align-items:center;gap:12px;color:#fff}
-.brand-mark{width:38px;height:38px;border-radius:8px;background:var(--hazard);display:grid;place-items:center;color:#13202C;font:700 14px var(--mono)}
+.brand-mark{width:38px;height:38px;border-radius:8px;background:var(--hazard);display:grid;place-items:center;color:#0F2E33;font:700 14px var(--mono)}
 .brand small{display:block;color:var(--side-ink);font-size:12px}
 .kpi-strip{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;max-width:520px}
-.kpi-strip div{border:1px solid #2A3A4A;border-radius:8px;padding:12px}
+.kpi-strip div{border:1px solid #1F4A4E;border-radius:8px;padding:12px}
 .kpi-strip b{display:block;color:#fff;font:600 18px var(--mono)}
 .login-form{display:grid;place-items:center;padding:32px 16px;background:var(--bg)}
 .login-card{width:100%;max-width:380px;display:grid;gap:18px}
@@ -76,12 +76,12 @@ button,input,select,textarea{font:inherit;color:inherit}
 .nav{display:grid;gap:2px}
 .nav a{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;color:var(--side-ink);text-decoration:none;font-weight:500}
 .nav a:hover{background:rgba(255,255,255,.06);color:#fff}
-.nav a.on{background:rgba(255,255,255,.1);color:#fff;box-shadow:inset 3px 0 0 var(--hazard)}
+.nav a.on{background:#0E7C7B;color:#fff;box-shadow:inset 3px 0 0 var(--hazard)}
 .nav svg{width:18px;height:18px;flex:none}
-.nav .count{margin-left:auto;background:var(--hazard);color:#13202C;border-radius:99px;padding:0 7px;font:600 11px/18px var(--mono)}
-.side .me{margin-top:auto;border-top:1px solid #253545;padding:14px 8px 0;display:grid;gap:6px;font-size:13px}
+.nav .count{margin-left:auto;background:var(--hazard);color:#0F2E33;border-radius:99px;padding:0 7px;font:600 11px/18px var(--mono)}
+.side .me{margin-top:auto;border-top:1px solid #1F4A4E;padding:14px 8px 0;display:grid;gap:6px;font-size:13px}
 .side .me b{color:#fff;font-weight:600}
-.side .me button{background:none;border:1px solid #33475A;color:var(--side-ink);border-radius:6px;padding:5px 10px;cursor:pointer;justify-self:start}
+.side .me button{background:none;border:1px solid #2B5A5E;color:var(--side-ink);border-radius:6px;padding:5px 10px;cursor:pointer;justify-self:start}
 .main{min-width:0;display:flex;flex-direction:column}
 .topbar{display:flex;align-items:center;gap:12px;padding:14px 24px;border-bottom:1px solid var(--line);background:var(--surface);position:sticky;top:env(safe-area-inset-top,0px);z-index:5}
 .topbar .menu{display:none;background:none;border:1px solid var(--line);border-radius:8px;padding:6px 8px;cursor:pointer}
@@ -2144,7 +2144,7 @@ PAGES.settings = async () => {
     const usageLbl = masterKind==='teams' ? 'สมาชิก' : 'อุปกรณ์';
     let editing = null;
     const formHTML = r => `<form class="card" id="mdForm"><h2>${r?'แก้ไข'+DEF.title:DEF.add}</h2>
-      ${DEF.cols.map(([k,l,req,ph])=> k==='color' ? `<label class="field"><span>${l}</span><input type="color" class="swatch" id="md-${k}" value="${esc(r?.[k]||'#0B6E99')}"></label>`
+      ${DEF.cols.map(([k,l,req,ph])=> k==='color' ? `<label class="field"><span>${l}</span><input type="color" class="swatch" id="md-${k}" value="${esc(r?.[k]||'#0E7C7B')}"></label>`
         : `<label class="field"><span>${l} ${req?'<em class="req">*</em>':''}</span><input class="input ${k==='code'?'mono':''}" id="md-${k}" value="${esc(r?.[k]||'')}" placeholder="${esc(ph)}" ${req?'required':''}></label>`).join('')}
       <label class="field"><span>ลำดับการแสดง</span><input class="input" id="md-sort" type="number" value="${r?.sort_order??(rows.length+1)}"></label>
       <div class="row"><button class="btn primary" style="flex:1">${svgI('check')} บันทึก</button><button type="button" class="btn" id="mdClear">ล้าง</button></div></form>`;
