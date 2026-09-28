@@ -311,6 +311,12 @@ tr.is-off td{opacity:.55}
 @media (max-width:700px){.perm-grid{grid-template-columns:1fr}}
 .crit{display:inline-block;font:600 10.5px/1.6 var(--mono);padding:0 7px;border-radius:4px;letter-spacing:.02em;white-space:nowrap}
 .crit-c{background:var(--bad);color:#fff} .crit-o{background:var(--warn-soft);color:var(--warn);border:1px solid color-mix(in srgb,var(--warn) 40%,transparent)} .crit-g{background:var(--mute-soft);color:var(--ink-2)}
+.md-tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.md-tools .input{flex:1;min-width:180px}
+.md-bulk{display:inline-flex;gap:8px;align-items:center}
+.icon-btn.del{color:var(--bad)}
+.icon-btn:disabled{opacity:.35;cursor:not-allowed}
+.md-confirm{border-color:var(--bad);background:var(--bad-soft);color:var(--ink)}
 /* ---------- overview dashboard ---------- */
 .gsearch{display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:99px;padding:0 12px;background:var(--surface-2);width:min(320px,40vw)}
 .gsearch svg{width:15px;height:15px;color:var(--ink-3)}
@@ -493,6 +499,7 @@ const ICON = {
   settings:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>'
 };
 Object.assign(ICON,{
+  trash:'<path d="M4 7h16M10 11v6M14 11v6M5 7l1 13h12l1-13M9 7V4h6v3"/>',
   send:'<path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/>',
   key:'<circle cx="7.5" cy="15.5" r="4.5"/><path d="M10.7 12.3L21 2M16 7l3 3M18 5l2 2"/>',
   bell:'<path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.9 1.9 0 0 0 3.4 0"/>',
@@ -2149,13 +2156,17 @@ PAGES.settings = async () => {
       <label class="field"><span>ลำดับการแสดง</span><input class="input" id="md-sort" type="number" value="${r?.sort_order??(rows.length+1)}"></label>
       <div class="row"><button class="btn primary" style="flex:1">${svgI('check')} บันทึก</button><button type="button" class="btn" id="mdClear">ล้าง</button></div></form>`;
     M.innerHTML = `<div class="md-grid">
-      <section class="card"><div class="card-head"><h2>${DEF.title} (${rows.length} รายการ)</h2></div>
-        <div class="tbl-wrap"><table class="compact"><thead><tr><th>ลำดับ</th>${DEF.cols.map(c=>`<th>${c[1]}</th>`).join('')}<th class="num">${usageLbl}</th><th>สถานะ</th><th></th></tr></thead><tbody>
-        ${rows.map(r=>`<tr class="${r.active===false?'is-off':''}"><td class="mono">${r.sort_order}</td>${DEF.cols.map(([k])=>k==='color'?`<td><i class="team-dot" style="background:${esc(r.color||'#888')}"></i></td>`:`<td class="${k==='code'?'mono':''}">${esc(r[k]||'–')}</td>`).join('')}
+      <section class="card"><div class="card-head"><h2>${DEF.title} (${rows.length} รายการ)</h2><button type="button" class="btn primary sm" id="mdNew">+ เพิ่ม${DEF.title}</button></div>
+        <div class="md-tools"><input class="input" id="mdQ" placeholder="ค้นหารหัสหรือชื่อ">
+          <button type="button" class="btn sm" id="mdSelUnused">เลือกรายการที่ไม่มี${usageLbl}</button>
+          <span class="md-bulk" id="mdBulk" hidden><span class="small" id="mdSelN"></span><button type="button" class="btn sm danger" id="mdDelSel">${svgI('trash')} ลบที่เลือก</button><button type="button" class="btn sm" id="mdSelClear">ยกเลิกการเลือก</button></span></div>
+        <div class="md-confirm note" id="mdConfirm" hidden></div>
+        <div class="tbl-wrap"><table class="compact"><thead><tr><th style="width:32px"><input type="checkbox" id="mdAll" aria-label="เลือกทั้งหมด"></th><th>ลำดับ</th>${DEF.cols.map(c=>`<th>${c[1]}</th>`).join('')}<th class="num">${usageLbl}</th><th>สถานะ</th><th></th></tr></thead><tbody>
+        ${rows.map(r=>`<tr class="${r.active===false?'is-off':''}" data-mrow="${esc(((r.code||'')+' '+(r.name||'')+' '+(r.building||'')).toLowerCase())}"><td><input type="checkbox" data-msel="${r.id}" aria-label="เลือก ${esc(r.name)}"></td><td class="mono">${r.sort_order}</td>${DEF.cols.map(([k])=>k==='color'?`<td><i class="team-dot" style="background:${esc(r.color||'#888')}"></i></td>`:`<td class="${k==='code'?'mono':''}">${esc(r[k]||'–')}</td>`).join('')}
           <td class="num mono">${usage(r)}</td><td><span class="pill ${r.active===false?'st-closed':'st-done'}">${r.active===false?'ปิดใช้งาน':'ใช้งาน'}</span></td>
-          <td><div class="acts"><button class="icon-btn" data-medit="${r.id}" title="แก้ไข">${svgI('edit')}</button><button class="icon-btn" data-mtog="${r.id}" title="${r.active===false?'เปิดใช้งาน':'ปิดใช้งาน'}">${svgI(r.active===false?'eyeoff':'eye')}</button></div></td></tr>`).join('')}
+          <td><div class="acts"><button class="icon-btn" data-medit="${r.id}" title="แก้ไข">${svgI('edit')}</button><button class="icon-btn" data-mtog="${r.id}" title="${r.active===false?'เปิดใช้งาน':'ปิดใช้งาน'}">${svgI(r.active===false?'eyeoff':'eye')}</button><button class="icon-btn del" data-mdel="${r.id}" title="${usage(r)?'ลบไม่ได้ ยังมี'+usageLbl+'อยู่ '+usage(r)+' รายการ':'ลบ'}" ${usage(r)?'disabled':''}>${svgI('trash')}</button></div></td></tr>`).join('')}
         </tbody></table></div>
-        <p class="small muted" style="margin:0">ปิดใช้งานแล้วรายการจะไม่ปรากฏในฟอร์มใหม่ แต่ข้อมูลเดิมที่อ้างอิงยังคงอยู่ครบ${masterKind==='types'?' · เปลี่ยนชื่อประเภทแล้วอุปกรณ์ในประเภทนั้นจะเปลี่ยนตามอัตโนมัติ':''}</p></section>
+        <p class="small muted" style="margin:0">ลบได้เฉพาะรายการที่ไม่มี${usageLbl}อยู่ ถ้ายังมีการใช้งานให้ปิดใช้งานแทน รายการที่ปิดจะไม่ปรากฏในฟอร์มใหม่ แต่ข้อมูลเดิมที่อ้างอิงยังคงอยู่ครบ${masterKind==='types'?' · เปลี่ยนชื่อประเภทแล้วอุปกรณ์ในประเภทนั้นจะเปลี่ยนตามอัตโนมัติ':''}</p></section>
       <div id="mdSide">${formHTML(null)}</div></div>`;
     const bindForm = () => {
       $('#mdClear').onclick = () => { editing=null; $('#mdSide').innerHTML = formHTML(null); bindForm(); };
@@ -2166,6 +2177,30 @@ PAGES.settings = async () => {
     };
     bindForm();
     $$('[data-medit]').forEach(b=>b.onclick=()=>{ editing=rows.find(r=>r.id===b.dataset.medit); $('#mdSide').innerHTML = formHTML(editing); bindForm(); $('#md-name').focus(); });
+    $('#mdNew').onclick = () => { editing=null; $('#mdSide').innerHTML = formHTML(null); bindForm(); $('#md-code').focus(); };
+    $('#mdQ').oninput = e => { const t=e.target.value.toLowerCase(); $$('[data-mrow]').forEach(r=>r.hidden=!r.dataset.mrow.includes(t)); };
+    const sel = () => $$('[data-msel]').filter(c=>c.checked).map(c=>c.dataset.msel);
+    const paintSel = () => { const n=sel().length; $('#mdBulk').hidden=!n; $('#mdSelN').textContent=`เลือก ${n} รายการ`; $('#mdConfirm').hidden=true; };
+    $$('[data-msel]').forEach(c=>c.onchange=paintSel);
+    $('#mdAll').onchange = e => { $$('[data-msel]').forEach(c=>{ if (!c.closest('tr').hidden) c.checked=e.target.checked; }); paintSel(); };
+    $('#mdSelUnused').onclick = () => { $$('[data-msel]').forEach(c=>{ const r=rows.find(x=>x.id===c.dataset.msel); c.checked = !c.closest('tr').hidden && usage(r)===0; }); paintSel(); };
+    $('#mdSelClear').onclick = () => { $$('[data-msel]').forEach(c=>c.checked=false); $('#mdAll').checked=false; paintSel(); };
+    const doDelete = async ids => {
+      let ok=0; const bad=[];
+      for (const id of ids) { const r=rows.find(x=>x.id===id);
+        if (usage(r)) { bad.push(`${r.name} (มี${usageLbl} ${usage(r)})`); continue; }
+        const { error } = await sb.from(DEF.table).delete().eq('id',id);
+        if (error) bad.push(`${r.name} (${/foreign key/i.test(error.message)?'ยังมีใบงานอ้างอิง':thaiErr(error)})`); else ok++; }
+      await loadRefs(); again();
+      if (bad.length) toast(`ลบแล้ว ${ok} รายการ · ลบไม่ได้ ${bad.length}: ${bad.slice(0,3).join(', ')}${bad.length>3?' …':''} — ใช้ปิดใช้งานแทน`, true);
+      else toast(`ลบแล้ว ${ok} รายการ`);
+    };
+    const askDelete = ids => { const box=$('#mdConfirm'); const names=ids.map(id=>rows.find(x=>x.id===id)?.name).filter(Boolean);
+      box.innerHTML = `<b>ลบ ${ids.length} รายการถาวร?</b> <span class="small">${esc(names.slice(0,5).join(', '))}${names.length>5?' …':''}</span><div class="row" style="margin-top:8px"><button type="button" class="btn sm danger" id="mdYes">ยืนยันลบ</button><button type="button" class="btn sm" id="mdNo">ไม่ลบ</button></div>`;
+      box.hidden=false; box.scrollIntoView({block:'nearest'});
+      $('#mdYes').onclick = () => { $('#mdYes').disabled=true; doDelete(ids); }; $('#mdNo').onclick = () => { box.hidden=true; }; };
+    $('#mdDelSel').onclick = () => askDelete(sel());
+    $$('[data-mdel]').forEach(b=>b.onclick=()=>askDelete([b.dataset.mdel]));
     $$('[data-mtog]').forEach(b=>b.onclick=async()=>{ const r=rows.find(x=>x.id===b.dataset.mtog);
       try { await q(sb.from(DEF.table).update({active: r.active===false}).eq('id',r.id)); await loadRefs(); toast(r.active===false?'เปิดใช้งานแล้ว':'ปิดใช้งานแล้ว'); again(); } catch(err){ fail(err); } });
   }
