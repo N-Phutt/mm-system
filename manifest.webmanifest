@@ -1,0 +1,16 @@
+{
+  "name": "Maintenance System",
+  "short_name": "Maintenance",
+  "description": "ระบบบำรุงรักษาอุปกรณ์ แจ้งซ่อม ใบงาน PM",
+  "lang": "th",
+  "start_url": "./#my",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#EEF4F3",
+  "theme_color": "#0F2E33",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

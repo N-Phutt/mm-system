@@ -4,6 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0F2E33">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Maintenance">
 <title>Maintenance System</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -317,6 +322,172 @@ tr.is-off td{opacity:.55}
 .icon-btn.del{color:var(--bad)}
 .icon-btn:disabled{opacity:.35;cursor:not-allowed}
 .md-confirm{border-color:var(--bad);background:var(--bad-soft);color:var(--ink)}
+/* ---------- features: critical, mobile jobs, photos, checklist ---------- */
+.crit-flag{display:inline-flex;align-items:center;gap:3px;background:var(--bad);color:#fff;font-size:11px;font-weight:600;padding:1px 7px;border-radius:999px;white-space:nowrap;letter-spacing:.02em}
+.sec-h{font-size:16px;margin:4px 0 -6px;display:flex;gap:8px;align-items:baseline}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.btn.big{padding:12px 16px;font-size:15px;min-height:46px;justify-content:center}
+.btn.icon-only{padding:10px 12px}
+.photo-btn{cursor:pointer}
+.jobs{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px}
+.job{background:var(--surface);border:1px solid var(--line);border-left:5px solid var(--accent);border-radius:var(--r);padding:14px;display:grid;gap:8px;box-shadow:var(--shadow)}
+.job.hot{border-left-color:var(--bad)}
+.job-top{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.job-code{font-weight:600}
+.job-sla{margin-left:auto}
+.job-title{margin:0;font-size:17px;line-height:1.35}
+.job-meta{font-size:13.5px;color:var(--ink-2)}
+.job-status{display:flex;gap:8px;align-items:center}
+.job-acts{display:flex;gap:8px;flex-wrap:wrap}
+.job-acts .btn.primary,.job-acts .btn.ok{flex:1 1 160px}
+.thumbs{display:flex;flex-wrap:wrap;gap:6px}
+.thumbs img{width:84px;height:84px;object-fit:cover;border-radius:8px;border:1px solid var(--line);display:block;background:var(--surface-2)}
+.photo-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+.label{font-size:12.5px;font-weight:600;color:var(--ink-2);margin-bottom:6px}
+.chk-list{display:grid;gap:8px}
+.chk-row{border:1px solid var(--line);border-radius:8px;padding:10px;display:grid;gap:8px;background:var(--surface-2)}
+.chk-t{display:flex;flex-wrap:wrap;gap:8px;align-items:baseline;justify-content:space-between}
+.chk-t b{font-weight:500}
+.chk-in{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.chk-val{display:flex;gap:6px;align-items:center}
+.chk-val .input{width:120px}
+.chk-note{flex:1;min-width:160px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg-b{border:0;background:var(--surface);padding:8px 14px;min-height:38px;font:inherit;font-size:13.5px;cursor:pointer;color:var(--ink-2)}
+.seg-b+.seg-b{border-left:1px solid var(--line)}
+.seg-b.ok.on{background:var(--ok);color:#fff}
+.seg-b.bad.on{background:var(--bad);color:#fff}
+.seg-b.na.on{background:var(--ink-3);color:#fff}
+.wo-links{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:13px}
+.wo-links a{cursor:pointer}
+
+/* bottom nav (mobile) */
+.bnav{display:none}
+@media (max-width:860px){
+  .bnav{display:grid;grid-template-columns:repeat(5,1fr);position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--surface);border-top:1px solid var(--line);padding:4px 4px calc(4px + env(safe-area-inset-bottom,0px))}
+  .bnav a,.bnav button{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11px;color:var(--ink-2);text-decoration:none;background:none;border:0;padding:6px 2px;font-family:inherit;cursor:pointer}
+  .bnav svg{width:22px;height:22px}
+  .bnav .on{color:var(--accent);font-weight:600}
+  .bnav .bn-new span.plus{width:44px;height:44px;border-radius:50%;background:var(--accent);color:#fff;display:grid;place-items:center;margin-top:-18px;box-shadow:var(--shadow)}
+  .main{padding-bottom:72px}
+  .jobs{grid-template-columns:1fr}
+  .asset-grid{grid-template-columns:1fr!important}
+}
+
+/* QR print */
+.print-area{position:fixed;inset:0;z-index:60;background:var(--bg);overflow:auto;padding:16px}
+.print-bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px;margin-bottom:16px;position:sticky;top:0}
+.labels{display:grid;gap:4mm;background:#fff;color:#000;padding:8mm;width:210mm;margin:0 auto}
+.labels.m{grid-template-columns:repeat(3,1fr)}
+.labels.l{grid-template-columns:repeat(2,1fr)}
+.labels.s{grid-template-columns:repeat(4,1fr)}
+.lbl{border:1px dashed #999;border-radius:2mm;padding:2.5mm;display:flex;gap:2.5mm;align-items:center;break-inside:avoid;height:34mm;overflow:hidden}
+.labels.l .lbl{height:62mm;padding:4mm;gap:4mm}
+.labels.s .lbl{height:22mm;padding:1.5mm;gap:1.5mm}
+.lbl-qr{flex:none;width:28mm;height:28mm}
+.labels.l .lbl-qr{width:50mm;height:50mm}
+.labels.s .lbl-qr{width:18mm;height:18mm}
+.lbl-qr svg{width:100%;height:100%;display:block}
+.lbl-t{display:grid;gap:.6mm;min-width:0;font-size:8pt;line-height:1.2}
+.lbl-t b{font-size:11pt}
+.labels.l .lbl-t{font-size:11pt}.labels.l .lbl-t b{font-size:16pt}
+.labels.s .lbl-t{font-size:6.5pt}.labels.s .lbl-t b{font-size:8.5pt}
+.lbl-t span{overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.lbl-foot{color:#555;font-size:.85em}
+.lbl-crit{border:1.2mm solid #C0392B}
+@media print{
+  @page{size:A4;margin:0}
+  body.printing > *:not(#printArea){display:none!important}
+  body.printing .print-area{position:static;padding:0;background:#fff}
+  body.printing .no-print{display:none!important}
+  body.printing .labels{padding:8mm;width:auto}
+}
+
+/* asset page */
+.asset-hero{display:flex;flex-wrap:wrap;gap:16px;justify-content:space-between;align-items:flex-start}
+.asset-hero h1{margin:6px 0 4px;font-size:22px}
+.ah-code{font-size:18px}
+.ah-acts{display:flex;flex-wrap:wrap;gap:8px}
+.state-dot{width:12px;height:12px;border-radius:50%;display:inline-block}
+.s-ok{background:var(--ok)}.s-warn{background:var(--warn)}.s-bad{background:var(--bad);box-shadow:0 0 0 4px var(--bad-soft)}.s-info{background:var(--info)}
+.asset-grid{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:20px;align-items:start}
+.ag-main,.ag-side{display:grid;gap:20px;min-width:0}
+.atl{list-style:none;margin:0;padding:0;display:grid}
+.atl li{display:grid;grid-template-columns:52px 1fr;gap:12px;padding:10px 0;border-top:1px solid var(--line);cursor:pointer;position:relative}
+.atl li:first-child{border-top:0}
+.atl li:hover{background:var(--surface-2)}
+.atl-d{text-align:center;border-radius:8px;background:var(--bad-soft);padding:6px 0;display:grid;align-content:start}
+.atl li.is-pm .atl-d{background:var(--ok-soft)}
+.atl li.is-down .atl-d{background:var(--bad);color:#fff}
+.atl-d b{font-size:13px}.atl-d small{font-size:11px;opacity:.8}
+.atl-b{display:grid;gap:3px;min-width:0}
+.atl-t{font-weight:500}
+.mbars{display:grid;grid-template-columns:repeat(12,1fr);gap:4px;height:120px;align-items:end}
+.mb{display:grid;grid-template-rows:1fr auto;height:100%;text-align:center;gap:3px}
+.mb-s{display:flex;flex-direction:column-reverse;justify-content:flex-start;background:var(--surface-2);border-radius:4px;overflow:hidden}
+.mb-s i{display:block;width:100%}
+.mb small{font-size:10px;color:var(--ink-3)}
+.docs{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.docs li{display:flex;gap:6px;align-items:center}
+.doc-open{flex:1;display:flex;gap:10px;align-items:center;text-align:left;border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:8px 10px;font:inherit;color:inherit;cursor:pointer;min-width:0}
+.doc-open svg{width:20px;height:20px;flex:none;color:var(--accent)}
+.doc-open span{display:grid;min-width:0}
+.doc-open small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.icon-btn.armed{color:#fff;background:var(--bad)}
+
+/* plant board */
+.board-sum{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
+.bs{border:1px solid var(--line);background:var(--surface);border-radius:var(--r);padding:12px 14px;display:grid;gap:2px;text-align:left;font:inherit;color:inherit;cursor:pointer;border-left:6px solid var(--line)}
+.bs b{font-size:28px;line-height:1.1}
+.bs span{font-size:13px;color:var(--ink-2)}
+.bs.on{box-shadow:0 0 0 3px var(--accent-soft);border-color:var(--accent)}
+.bs-ok{border-left-color:var(--ok)}.bs-pm{border-left-color:var(--info)}.bs-repair{border-left-color:var(--hazard)}.bs-down{border-left-color:var(--bad)}.bs-av{border-left-color:var(--accent);cursor:default}
+.bs-down b{color:var(--bad)}
+.board-tools{align-items:center}
+.lg-ok{background:var(--ok)}.lg-pm{background:var(--info)}.lg-repair{background:var(--hazard)}.lg-down{background:var(--bad)}.lg-pmdue{background:transparent;outline:2px dashed var(--warn);outline-offset:-2px}
+.zones{display:grid;grid-template-columns:repeat(auto-fill,minmax(420px,1fr));gap:14px;align-items:start}
+.zone{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px;display:grid;gap:10px;border-top:4px solid var(--ok)}
+.zone.z-warn{border-top-color:var(--hazard)}.zone.z-down{border-top-color:var(--bad)}
+.zone-h{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.z-bad{color:var(--bad);font-weight:600}
+.tiles-m{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:6px}
+.mt{display:grid;gap:1px;padding:6px 7px;border-radius:6px;text-decoration:none;color:#fff;font-size:11px;line-height:1.25;min-height:52px;align-content:start;position:relative}
+.mt.st-ok{background:var(--ok)}.mt.st-pm{background:var(--info)}.mt.st-repair{background:var(--hazard);color:#1c1300}.mt.st-down{background:var(--bad);animation:pulseDown 1.6s ease-in-out infinite}
+.mt.is-crit{box-shadow:inset 0 0 0 2px rgba(255,255,255,.85)}
+.mt.pm-due{outline:2px dashed var(--warn);outline-offset:1px}
+.mt-c{font-weight:600;font-size:12px}
+.mt-n{overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;opacity:.92}
+.mt-s{font-size:10px;opacity:.85}
+.mt:hover{filter:brightness(1.08)}
+@keyframes pulseDown{50%{filter:brightness(1.25)}}
+@media (prefers-reduced-motion:reduce){.mt.st-down{animation:none}}
+body.tv .side,body.tv .topbar,body.tv .foot-bar,body.tv .bnav,body.tv .board-tools{display:none!important}
+body.tv .app{grid-template-columns:1fr}
+body.tv .content{padding:14px}
+body.tv .zones{grid-template-columns:repeat(auto-fill,minmax(360px,1fr))}
+body.tv .mt{font-size:12px;min-height:58px}
+@media (max-width:860px){.board-sum{grid-template-columns:repeat(2,minmax(0,1fr))}.zones{grid-template-columns:1fr}}
+
+/* kanban */
+.kb-wrap{overflow-x:auto;padding-bottom:6px}
+.kb{display:grid;grid-template-columns:repeat(5,minmax(250px,1fr));gap:12px;min-width:1300px;align-items:start}
+.kcol{background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r);display:grid;grid-template-rows:auto 1fr;max-height:calc(100vh - 230px);min-height:300px;border-top:4px solid var(--line)}
+.kcol-new{border-top-color:var(--info)}.kcol-assigned{border-top-color:var(--accent)}.kcol-in_progress{border-top-color:var(--hazard)}.kcol-on_hold{border-top-color:var(--ink-3)}.kcol-done{border-top-color:var(--ok)}
+.kcol.over{background:var(--accent-soft);border-color:var(--accent)}
+.kcol-h{display:flex;justify-content:space-between;padding:10px 12px;border-bottom:1px solid var(--line)}
+.kcol-b{overflow-y:auto;padding:8px;display:grid;gap:8px;align-content:start}
+.kc{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px;display:grid;gap:5px;cursor:pointer;border-left:4px solid var(--accent)}
+.kc.hot{border-left-color:var(--bad)}
+.kc[draggable="true"]{cursor:grab}
+.kc.dragging{opacity:.4}
+.kc:hover{box-shadow:var(--shadow)}
+.kc-top{display:flex;flex-wrap:wrap;gap:5px;align-items:center}
+.kc-t{font-weight:500;font-size:14px;line-height:1.35}
+.kc-foot{display:flex;justify-content:space-between;align-items:center;gap:6px;font-size:12px}
+.kc-who{display:flex;gap:6px;align-items:center;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.av{width:22px;height:22px;border-radius:50%;background:var(--accent);color:#fff;display:grid;place-items:center;font-size:11px;flex:none}
+.kc-empty{border:1px dashed var(--line);border-radius:8px;padding:18px;text-align:center;font-size:12px;color:var(--ink-3)}
+
 /* ---------- overview dashboard ---------- */
 .gsearch{display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:99px;padding:0 12px;background:var(--surface-2);width:min(320px,40vw)}
 .gsearch svg{width:15px;height:15px;color:var(--ink-3)}
@@ -419,7 +590,7 @@ table.compact td{white-space:nowrap}
 /* ============ CONFIG ============ */
 const SB_URL = 'https://jtfeumjnqzozlmqlpcio.supabase.co';
 const SB_KEY = 'sb_publishable_m33nyCNfh5nKma5LxgV85g_ZLeQa052';
-const APP_VERSION = '1.0.0';
+const APP_VERSION = '1.1.0';
 const TZ = 'Asia/Bangkok';
 
 const sb = supabase.createClient(SB_URL, SB_KEY, { auth: { persistSession: true, autoRefreshToken: true } });
@@ -499,6 +670,12 @@ const ICON = {
   settings:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>'
 };
 Object.assign(ICON,{
+  camera:'<path d="M3 8h4l2-3h6l2 3h4v12H3z"/><circle cx="12" cy="13" r="4"/>',
+  board:'<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
+  my:'<rect x="6" y="2" width="12" height="20" rx="2"/><path d="M10 18h4M9 8l2 2 4-4"/>',
+  kanban:'<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M15 3v18M5.5 7h2M11.5 7h2M11.5 11h2M17.5 7h2"/>',
+  menu:'<path d="M4 6h16M4 12h16M4 18h16"/>',
+  download:'<path d="M12 3v12M7 10l5 5 5-5M4 21h16"/>',
   trash:'<path d="M4 7h16M10 11v6M14 11v6M5 7l1 13h12l1-13M9 7V4h6v3"/>',
   send:'<path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/>',
   key:'<circle cx="7.5" cy="15.5" r="4.5"/><path d="M10.7 12.3L21 2M16 7l3 3M18 5l2 2"/>',
@@ -570,8 +747,14 @@ function renderLogin(msg=''){
 try { const th = localStorage.getItem('emm.theme'); if (th) document.documentElement.dataset.theme = th; } catch {}
 let booting = false;
 async function boot(){
-  if (location.hash === '#report') { await loadCfg(); return renderPublicReport(); }
-  if (booting) return; booting = true;
+  if (booting) return;
+  if (/^#(report|asset\/)/.test(location.hash)) {
+    const { data:{ session } } = await sb.auth.getSession();
+    if (!session) { await loadCfg(); const m = location.hash.match(/^#(report|asset)\/(.+)$/);
+      if (location.hash.startsWith('#asset/')) return renderPublicAsset(decodeURIComponent(m[2]));
+      return renderPublicReport(m ? decodeURIComponent(m[2]) : ''); }
+  }
+  booting = true;
   try { await bootInner(); } finally { booting = false; }
 }
 async function bootInner(){
@@ -608,12 +791,15 @@ async function loadRefs(){
 /* ============ SHELL & ROUTER ============ */
 const NAV = [
   ['dashboard','Dashboard', ()=>true],
+  ['board','ผังสถานะเครื่อง', ()=>can('asset.view')||can('dashboard.view')],
   ['new','แจ้งซ่อม', ()=>can('wo.create')],
+  ['my','งานของฉัน', ()=>can('wo.edit')],
   ['repair','งานซ่อม', ()=>true],
   ['pm','PM Plan', ()=>can('pm.view')||can('pm.manage')],
   ['equipment','Asset & Equipment', ()=>can('asset.view')||can('asset.manage')],
   ['parts','อะไหล่คงคลัง', ()=>can('part.view')||can('part.manage')],
   ['wo','Work Order', ()=>true],
+  ['kanban','บอร์ดใบงาน', ()=>can('wo.view')||can('wo.assign')],
   ['tech','Technician', ()=>can('tech.view')||can('tech.manage')],
   ['calendar','Calendar', ()=>can('calendar.view')],
   ['reports','Reports', ()=>can('report.view')],
@@ -621,14 +807,14 @@ const NAV = [
 ];
 const CRUMB = { new:['สร้างใบงานใหม่','Create Work Order'], repair:['งานซ่อม','Corrective Maintenance'], wo:['ใบงานทั้งหมด','Work Orders'], dashboard:['ระบบบำรุงรักษาอุปกรณ์','Equipment Maintenance Dashboard'],
   pm:['แผนบำรุงรักษาเชิงป้องกัน','Preventive Maintenance Plan'], equipment:['ทะเบียนอุปกรณ์','Asset & Equipment'], parts:['อะไหล่คงคลัง','Spare Parts Inventory'], tech:['ช่างซ่อมบำรุง','Technicians'],
-  calendar:['ปฏิทินงาน','Maintenance Calendar'], reports:['รายงาน','Reports'], settings:['ตั้งค่าระบบ','Settings'] };
+  calendar:['ปฏิทินงาน','Maintenance Calendar'], my:['งานของฉัน','My Jobs'], kanban:['บอร์ดใบงาน','Kanban Board'], board:['ผังสถานะเครื่องจักร','Plant Status Board'], asset:['รายละเอียดเครื่อง','Asset Detail'], reports:['รายงาน','Reports'], settings:['ตั้งค่าระบบ','Settings'] };
 function renderShell(){
   $('#root').innerHTML = `
   <div class="app">
     <aside class="side" id="side">
       <div class="brand">${brandHTML()}</div>
       <nav class="nav" id="nav">${NAV.filter(n=>n[2]()).map(n=>`<a href="#${n[0]}" data-r="${n[0]}">${svgI(n[0])}<span>${n[1]}</span>${n[0]==='repair'?'<span class="count" id="nav-open" hidden></span>':''}</a>`).join('')}</nav>
-      <div class="me"><b>${esc(S.profile.full_name)}</b><span>${ROLE[role()]}${S.profile.team_id?' · '+esc(S.teams.find(t=>t.id===S.profile.team_id)?.name||''):''}</span><button id="logout">ออกจากระบบ</button></div>
+      <div class="me"><button class="btn sm" id="installBtn" hidden style="margin-bottom:8px">${svgI('download')} ติดตั้งแอปบนเครื่อง</button><b>${esc(S.profile.full_name)}</b><span>${ROLE[role()]}${S.profile.team_id?' · '+esc(S.teams.find(t=>t.id===S.profile.team_id)?.name||''):''}</span><button id="logout">ออกจากระบบ</button></div>
     </aside>
     <div class="scrim" id="sideScrim" hidden></div>
     <div class="main">
@@ -643,7 +829,11 @@ function renderShell(){
       <main class="content" id="view"></main>
       ${footerHTML()}
     </div>
+    <nav class="bnav" id="bnav" aria-label="เมนูลัด">${bnavHTML()}</nav>
   </div>`;
+  if (deferredInstall) $('#installBtn').hidden = false;
+  $('#installBtn').onclick = async () => { if (!deferredInstall) return; deferredInstall.prompt(); await deferredInstall.userChoice.catch(()=>{}); deferredInstall = null; $('#installBtn').hidden = true; };
+  $('#bnMenu').onclick = () => { $('#side').classList.add('open'); $('#sideScrim').hidden=false; };
   $('#logout').onclick = () => sb.auth.signOut();
   $('#gSearch').onsubmit = e => { e.preventDefault(); const t=$('#gq').value.trim(); if (!t) return;
     if (/^(WO|PM)-/i.test(t) || !can('asset.view')) { Object.assign(woFilter,{tab:'all',term:t,page:0}); if (location.hash==='#wo') PAGES.wo().catch(fail); else location.hash='#wo'; }
@@ -670,12 +860,39 @@ async function refreshOpenCount(){
   if (el) { el.hidden = !count; el.textContent = count; }
 }
 const PAGES = {};
+function bnavHTML(){
+  const it = [['dashboard','หน้าหลัก','dashboard'], can('wo.edit')?['my','งานของฉัน','my']:['repair','งานซ่อม','repair']];
+  const it2 = [(can('asset.view')||can('dashboard.view'))?['board','ผังเครื่อง','board']:['wo','ใบงาน','wo']];
+  const a = x => `<a href="#${x[0]}" data-bn="${x[0]}">${svgI(x[2])}<span>${x[1]}</span></a>`;
+  return it.map(a).join('') + (can('wo.create')?`<a href="#new" class="bn-new" data-bn="new"><span class="plus">${svgI('plus')}</span><span>แจ้งซ่อม</span></a>`:a(['wo','ใบงาน','wo'])) + it2.map(a).join('') + `<button type="button" id="bnMenu">${svgI('menu')}<span>เมนู</span></button>`;
+}
+function rerender(){ if (S.route==='asset') return PAGES.asset(S.assetCode).catch(fail); if (PAGES[S.route]) PAGES[S.route]().catch(fail); }
 function route(){
   if (location.hash === '#report') { location.hash = '#new'; return; }
-  const r = (location.hash.slice(1) || 'dashboard');
+  clearInterval(boardTimer);
+  const hr = location.hash.slice(1);
+  if (!hr.startsWith('board') && document.body.classList.contains('tv')) { document.body.classList.remove('tv'); if (document.fullscreenElement) document.exitFullscreen?.().catch(()=>{}); }
+  const am = hr.match(/^(asset|report)\/(.+)$/);
+  if (am) {
+    const code = decodeURIComponent(am[2]); closeSide(); closePanel();
+    if (am[1]==='report' && can('wo.create')) {
+      S.route='new'; $$('#nav a').forEach(a=>a.classList.toggle('on', a.dataset.r==='new')); $$('#bnav [data-bn]').forEach(a=>a.classList.toggle('on', a.dataset.bn==='new'));
+      $('#crumb').textContent = CRUMB.new[0]; $('#crumb2').textContent = CRUMB.new[1];
+      sb.from('equipment').select('id,asset_code,name,location_id').eq('asset_code', code).maybeSingle().then(({data}) => PAGES.new(data||null)).catch(fail);
+      return;
+    }
+    S.route='asset'; S.assetCode=code;
+    $$('#nav a').forEach(a=>a.classList.toggle('on', a.dataset.r==='equipment')); $$('#bnav [data-bn]').forEach(a=>a.classList.remove('on'));
+    $('#crumb').textContent = CRUMB.asset[0]; $('#crumb2').textContent = code;
+    $('#view').innerHTML = '<div class="loading">กำลังโหลด…</div>';
+    if (!(can('asset.view')||can('asset.manage')||can('wo.edit'))) { $('#view').innerHTML = `<section class="card"><div class="empty">คุณไม่มีสิทธิ์ดูรายละเอียดเครื่อง<br>${can('wo.create')?`<a class="btn primary" href="#report/${encodeURIComponent(code)}" style="margin-top:12px">แจ้งซ่อมเครื่อง ${esc(code)}</a>`:''}</div></section>`; return; }
+    PAGES.asset(code).catch(fail); return;
+  }
+  const r = (hr || 'dashboard');
   const n = NAV.find(n=>n[0]===r && n[2]()) || NAV[0];
   S.route = n[0]; closeSide(); closePanel();
   $$('#nav a').forEach(a=>a.classList.toggle('on', a.dataset.r===n[0]));
+  $$('#bnav [data-bn]').forEach(a=>a.classList.toggle('on', a.dataset.bn===n[0]));
   $('#crumb').textContent = (CRUMB[n[0]]||[n[1]])[0]; $('#crumb2').textContent = (CRUMB[n[0]]||['',''])[1];
   $('#view').innerHTML = '<div class="loading">กำลังโหลด…</div>';
   PAGES[n[0]]().catch(fail);
@@ -719,7 +936,7 @@ function bindEquipCombo(id, onPick){
 const locLabel = l => l ? [l.name, l.building&&('อาคาร '+l.building), l.floor&&('ชั้น '+l.floor)].filter(Boolean).join(' · ') : '–';
 const locOptions = sel => `<option value="">– ไม่ระบุ –</option>`+S.locations.filter(l=>l.active!==false||l.id===sel).map(l=>`<option value="${l.id}" ${l.id===sel?'selected':''}>${esc(locLabel(l))}</option>`).join('');
 const teamOptions = (sel, empty='– ไม่ระบุทีม –') => `<option value="">${empty}</option>`+S.teams.filter(t=>t.active!==false||t.id===sel).map(t=>`<option value="${t.id}" ${t.id===sel?'selected':''}>${esc(t.name)}</option>`).join('');
-const techOptions = (sel, teamId) => `<option value="">– ยังไม่มอบหมาย –</option>`+S.people.filter(p=>p.active&&['technician','supervisor','admin'].includes(p.role)).sort((a,b)=>(b.team_id===teamId)-(a.team_id===teamId)).map(p=>`<option value="${p.id}" ${p.id===sel?'selected':''}>${esc(p.full_name)} (${ROLE[p.role]}${p.team_id?' · '+esc(S.teams.find(t=>t.id===p.team_id)?.name||''):''})</option>`).join('');
+const techOptions = (sel, teamId) => `<option value="">– ยังไม่มอบหมาย –</option>`+S.people.filter(p=>p.active&&['technician','supervisor','manager','admin'].includes(p.role)).sort((a,b)=>(b.team_id===teamId)-(a.team_id===teamId)).map(p=>`<option value="${p.id}" ${p.id===sel?'selected':''}>${esc(p.full_name)} (${ROLE[p.role]}${p.team_id?' · '+esc(S.teams.find(t=>t.id===p.team_id)?.name||''):''})</option>`).join('');
 const prioOptions = sel => Object.entries(PRIO).map(([k,v])=>`<option value="${k}" ${k===sel?'selected':''}>${v}</option>`).join('');
 
 /* ============ DASHBOARD ============ */
@@ -987,13 +1204,13 @@ async function myDashboard(){
 }
 
 /* ============ WORK ORDERS ============ */
-const WO_SEL = 'id,code,title,status,priority,source,created_at,due_date,sla_resolve_due,completed_at,equipment_down,assigned_to,equipment:equipment_id(asset_code,name),team:team_id(name,color),assignee:profiles!work_orders_assigned_to_fkey(full_name)';
+const WO_SEL = 'id,code,title,status,priority,source,created_at,due_date,sla_resolve_due,completed_at,equipment_down,assigned_to,equipment:equipment_id(asset_code,name,criticality),team:team_id(name,color),assignee:profiles!work_orders_assigned_to_fkey(full_name)';
 function woTable(rows, showAssignee=true){
   if (!rows?.length) return '<div class="empty">ไม่มีใบงาน</div>';
   return `<div class="tbl-wrap"><table><thead><tr><th>เลขที่</th><th>เรื่อง / อุปกรณ์</th><th>ความเร่งด่วน</th><th>สถานะ</th>${showAssignee?'<th>ทีม / ผู้รับผิดชอบ</th>':''}<th>SLA</th><th>แจ้งเมื่อ</th></tr></thead><tbody>
   ${rows.map(w=>`<tr class="click" data-wo="${w.id}" tabindex="0">
     <td class="mono">${esc(w.code)}${w.source==='pm'?' <span class="pill plain small">PM</span>':''}</td>
-    <td style="min-width:220px"><b style="font-weight:500">${esc(w.title)}</b>${w.equipment_down?' <span class="down">● เครื่องหยุด</span>':''}<div class="small muted">${w.equipment?`<span class="mono">${esc(w.equipment.asset_code)}</span> · ${esc(w.equipment.name)}`:'ไม่ระบุอุปกรณ์'}</div></td>
+    <td style="min-width:220px"><b style="font-weight:500">${esc(w.title)}</b>${w.equipment_down?' <span class="down">● เครื่องหยุด</span>':''} ${critFlag(w.equipment?.criticality)}<div class="small muted">${w.equipment?`<span class="mono">${esc(w.equipment.asset_code)}</span> · ${esc(w.equipment.name)}`:'ไม่ระบุอุปกรณ์'}</div></td>
     <td>${prioTag(w.priority)}</td><td>${statusPill(w.status)}</td>
     ${showAssignee?`<td class="small">${teamTag(w.team)}<div class="muted">${esc(w.assignee?.full_name||'ยังไม่มอบหมาย')}</div></td>`:''}
     <td>${slaTag(w)}</td><td class="small muted" style="white-space:nowrap">${fmtDT(w.created_at)}</td></tr>`).join('')}
@@ -1054,12 +1271,18 @@ async function openWO(id){
   const body = openPanel('กำลังโหลด…','', '<div class="loading">กำลังโหลด…</div>');
   try {
     const [{data:w},{data:ev},{data:parts}] = await Promise.all([
-      q(sb.from('work_orders').select('*,equipment:equipment_id(id,asset_code,name,category,model,manufacturer),location:location_id(name,building,floor),team:team_id(id,name,color),assignee:profiles!work_orders_assigned_to_fkey(full_name),reporter:profiles!work_orders_reported_by_fkey(full_name)').eq('id',id).single()),
+      q(sb.from('work_orders').select('*,equipment:equipment_id(id,asset_code,name,category,model,manufacturer,criticality),location:location_id(name,building,floor),team:team_id(id,name,color),assignee:profiles!work_orders_assigned_to_fkey(full_name),reporter:profiles!work_orders_reported_by_fkey(full_name)').eq('id',id).single()),
       q(sb.from('work_order_events').select('*,actor:profiles!work_order_events_actor_id_fkey(full_name)').eq('work_order_id',id).order('created_at')),
       !seesWork() ? {data:[]} : q(sb.from('work_order_parts').select('id,quantity_used,used_at,part:part_id(part_code,name,unit,unit_cost)').eq('work_order_id',id).order('used_at'))
     ]);
     let checklist = null;
-    if (w.pm_schedule_id && (can('pm.view')||can('pm.manage'))) { const r = await sb.from('pm_schedules').select('checklist').eq('id',w.pm_schedule_id).single(); checklist = r.data?.checklist; }
+    if (w.pm_schedule_id) { const r = await sb.from('pm_schedules').select('checklist').eq('id',w.pm_schedule_id).maybeSingle(); checklist = r.data?.checklist; }
+    const [pr, kids, par] = await Promise.all([
+      checklist?.length ? sb.from('pm_results').select('idx,item,result,value,unit,note').eq('work_order_id', id) : {data:[]},
+      sb.from('work_orders').select('id,code,status').eq('parent_id', id),
+      w.parent_id ? sb.from('work_orders').select('id,code,status').eq('id', w.parent_id).maybeSingle() : {data:null}
+    ]);
+    w._results = pr.data || []; w._kids = kids.data || []; w._parent = par.data || null;
     renderWO(w, ev||[], parts||[], checklist);
   } catch(e){ closePanel(); fail(e); }
 }
@@ -1090,14 +1313,14 @@ function renderWO(w, ev, parts, checklist){
   const body = $('#pBody');
   $('#panel .panel-head h2').innerHTML = `<span class="mono">${esc(w.code)}</span> · ${esc(w.title)}`;
   $('#panel .panel-head .small')?.remove();
-  $('#panel .panel-head > div').insertAdjacentHTML('beforeend', `<div class="row" style="margin-top:8px">${statusPill(w.status)} ${prioTag(w.priority)} ${slaTag(w)} ${w.equipment_down?`<span class="down">● เครื่องหยุด ${dur(downH)}</span>`:''}</div>`);
+  $('#panel .panel-head > div').insertAdjacentHTML('beforeend', `<div class="row" style="margin-top:8px">${statusPill(w.status)} ${prioTag(w.priority)} ${critFlag(w.equipment?.criticality)} ${slaTag(w)} ${w.equipment_down?`<span class="down">● เครื่องหยุด ${dur(downH)}</span>`:''}</div>`);
   body.innerHTML = `
   ${actions.length?`<div class="row">${actions.join('')}</div>`:''}
   <div id="deleteBox" hidden class="card"><p style="margin:0">ลบใบงาน <b class="mono">${esc(w.code)}</b> ถาวร? ประวัติทั้งหมดจะถูกลบ และอะไหล่ที่เบิกจะคืนเข้าสต็อก</p><div class="row"><button class="btn danger" data-act="deleteGo">ยืนยันลบใบงาน</button><button class="btn" data-act="deleteNo">ไม่ลบ</button></div></div>
   <div id="cancelBox" hidden class="card"><label class="field"><span>เหตุผลที่ยกเลิก</span><input class="input" id="cancelWhy"></label><div class="row"><button class="btn danger" data-act="cancelGo">ยืนยันยกเลิกใบงาน</button><button class="btn" data-act="cancelNo">ไม่ยกเลิก</button></div></div>
   <section class="card">
     <dl class="kv">
-      <dt>อุปกรณ์</dt><dd>${w.equipment?`<span class="mono">${esc(w.equipment.asset_code)}</span> · ${esc(w.equipment.name)}<div class="small muted">${esc([w.equipment.category,w.equipment.manufacturer,w.equipment.model].filter(Boolean).join(' · '))}</div>`:'–'}</dd>
+      <dt>อุปกรณ์</dt><dd>${w.equipment?`<a class="mono" href="#asset/${encodeURIComponent(w.equipment.asset_code)}">${esc(w.equipment.asset_code)}</a> · ${esc(w.equipment.name)}<div class="small muted">${esc([w.equipment.category,w.equipment.manufacturer,w.equipment.model].filter(Boolean).join(' · '))}</div>`:'–'}</dd>
       <dt>สถานที่</dt><dd>${esc(locLabel(w.location))}</dd>
       <dt>รายละเอียด</dt><dd style="white-space:pre-wrap">${esc(w.description||'–')}</dd>
       <dt>ผู้แจ้ง</dt><dd>${esc(w.reporter?.full_name||w.reporter_name||'–')}${w.reporter_contact?` · ${esc(w.reporter_contact)}`:''} <span class="small muted">(${SOURCE[w.source]})</span></dd>
@@ -1111,7 +1334,9 @@ function renderWO(w, ev, parts, checklist){
       ${w.resolution?`<dt>การแก้ไข</dt><dd style="white-space:pre-wrap">${esc(w.resolution)}</dd>`:''}
     </dl>
   </section>
-  ${checklist?.length?`<section class="card"><h3>รายการตรวจเช็ก PM</h3><ol class="checklist">${checklist.map(c=>`<li>${esc(typeof c==='string'?c:c.item||JSON.stringify(c))}</li>`).join('')}</ol></section>`:''}
+  ${w._parent||w._kids.length?`<section class="card wo-links"><b>ใบงานที่เกี่ยวข้อง:</b>${w._parent?`<span class="small muted">ต่อจาก</span><a data-open="${w._parent.id}" class="mono">${esc(w._parent.code)}</a>${statusPill(w._parent.status)}`:''}${w._kids.map(k=>`<span class="small muted">ใบงานซ่อมต่อ</span><a data-open="${k.id}" class="mono">${esc(k.code)}</a>${statusPill(k.status)}`).join('')}</section>`:''}
+  ${checklist?.length?`<section class="card" id="woChk">${pmChecklistHTML(w, checklist, w._results, canWork && ['assigned','in_progress','on_hold'].includes(w.status))}</section>`:''}
+  ${seesWork()||mine?`<section class="card" id="woPhotos"><div class="loading">กำลังโหลดรูป…</div></section>`:''}
   ${can('wo.assign') && open ? `<section class="card"><h3>มอบหมายงาน</h3>
     <div class="grid2">
       <label class="field"><span>ทีม</span><select class="input" id="asTeam">${teamOptions(w.team_id)}</select></label>
@@ -1120,7 +1345,7 @@ function renderWO(w, ev, parts, checklist){
       <label class="check" style="align-self:end;padding-bottom:8px"><input type="checkbox" id="asDown" ${w.equipment_down?'checked':''}> เครื่องหยุดทำงาน</label>
     </div>
     <div class="row"><button class="btn primary" data-act="assign">บันทึกการมอบหมาย</button><span class="small muted">เปลี่ยนความเร่งด่วนหรือทีมจะคำนวณ SLA ใหม่</span></div></section>`:''}
-  ${canWork && w.status==='in_progress' ? `<section class="card"><h3>บันทึกผลการซ่อม</h3>
+  ${canWork && w.status==='in_progress' && !checklist?.length ? `<section class="card"><h3>บันทึกผลการซ่อม</h3>
     <label class="field"><span>สาเหตุของปัญหา</span><input class="input" id="rsCause" value="${esc(w.failure_cause||'')}" placeholder="เช่น ลูกปืนสึก, ฟิวส์ขาด"></label>
     <label class="field"><span>วิธีแก้ไข / งานที่ทำ</span><textarea class="input" id="rsText" placeholder="อธิบายงานที่ทำ">${esc(w.resolution||'')}</textarea></label>
     <div class="row"><button class="btn ok" data-act="done">ซ่อมเสร็จ</button>${w.equipment_down?'<span class="small muted">ระบบจะบันทึกเวลาที่เครื่องกลับมาใช้งานให้อัตโนมัติ</span>':''}</div></section>`:''}
@@ -1133,7 +1358,10 @@ function renderWO(w, ev, parts, checklist){
     <div class="row"><input class="input" id="cmText" placeholder="เพิ่มความคิดเห็น" style="flex:1;min-width:200px"><button class="btn" data-act="comment">ส่ง</button></div>
   </section>`;
 
-  const reload = async (msg) => { if (msg) toast(msg); await openWO(w.id); refreshOpenCount(); refreshAlerts(); if (['wo','repair','dashboard','tech','calendar'].includes(S.route)) PAGES[S.route]().catch(fail); };
+  const reload = async (msg) => { if (msg) toast(msg); await openWO(w.id); refreshOpenCount(); refreshAlerts(); if (['wo','repair','dashboard','tech','calendar','my','kanban','board','asset'].includes(S.route)) rerender(); };
+  $$('[data-open]',body).forEach(a=>a.onclick=()=>openWO(a.dataset.open));
+  if ($('#woChk')) bindPmChecklist(w, checklist, $('#woChk'), () => reload());
+  if ($('#woPhotos')) paintPhotos(w, $('#woPhotos'), canWork && w.status!=='cancelled' && w.status!=='closed').catch(e=>{ $('#woPhotos').innerHTML='<p class="small muted">โหลดรูปไม่สำเร็จ</p>'; });
   const upd = async (patch, msg) => { try { await q(sb.from('work_orders').update(patch).eq('id',w.id)); await reload(msg); } catch(e){ fail(e); } };
   $$('[data-st]',body).forEach(b=>b.onclick=()=>upd({status:b.dataset.st}, 'เปลี่ยนสถานะเป็น "'+STATUS[b.dataset.st]+'" แล้ว'));
   const act = (n,fn) => { const b=$(`[data-act="${n}"]`,body); if (b) b.onclick=fn; };
@@ -1211,12 +1439,15 @@ PAGES.new = async (preset) => {
 };
 
 /* ============ PUBLIC REPORT (no login) ============ */
-function renderPublicReport(){
+async function renderPublicReport(code){
+  code = code || new URLSearchParams(location.search).get('asset') || '';
+  const card = code ? (await sb.rpc('public_equipment_card', { p_code: code })).data : null;
   $('#root').innerHTML = `
   <div class="login-form" style="min-height:100%;align-items:start;padding-top:40px">
     <form class="login-card" id="pubForm" style="max-width:520px">
       <div class="brand" style="color:var(--ink)"><div class="brand-mark">${esc(S.cfg.general.short_name||'MS')}</div><div><b>แจ้งซ่อมด่วน</b><small style="color:var(--ink-2)">ไม่ต้องเข้าสู่ระบบ · ทีมช่างจะได้รับใบงานทันที</small></div></div>
-      <label class="field"><span>รหัสอุปกรณ์ (ถ้ามี ดูจากป้าย/QR ที่ตัวเครื่อง)</span><input class="input mono" id="pf-asset" name="asset" value="${esc(new URLSearchParams(location.search).get('asset')||'')}"></label>
+      ${card?`<div class="note"><b class="mono">${esc(card.asset_code)}</b> ${critTag(card.criticality)} ${esc(card.name)}<div class="small">${esc(card.location||'')}${card.open?` · มีงานซ่อมค้างอยู่ ${card.open} งาน`:''}</div></div>`:''}
+      <label class="field" ${card?'hidden':''}><span>รหัสอุปกรณ์ (ถ้ามี ดูจากป้าย/QR ที่ตัวเครื่อง)</span><input class="input mono" id="pf-asset" name="asset" value="${esc(code)}"></label>
       <label class="field"><span>อาการเสีย *</span><input class="input" id="pf-title" name="title" required maxlength="200"></label>
       <label class="field"><span>รายละเอียด / สถานที่</span><textarea class="input" id="pf-desc" name="desc"></textarea></label>
       <div class="grid2">
@@ -1356,11 +1587,11 @@ async function pmDetail(p, lastDone){
   } catch(e){ closePanel(); fail(e); }
 }
 const recurText = p => p.recurrence_type==='custom_days' ? `ทุก ${p.recurrence_interval} วัน` : (p.recurrence_interval>1 ? `ทุก ${p.recurrence_interval} ${({daily:'วัน',weekly:'สัปดาห์',monthly:'เดือน',quarterly:'ไตรมาส',yearly:'ปี'})[p.recurrence_type]}` : RECUR[p.recurrence_type]);
-function pmForm(p){
+function pmForm(p, presetEquip){
   const body = openPanel(p?'แก้ไขแผน PM':'สร้างแผน PM ใหม่', p?`<span class="mono">${esc(p.code||'')}</span> · ${esc(p.name)}`:'ระบบจะตั้งรหัสแผนให้อัตโนมัติ', `
   <form id="pmForm" class="card">
     <label class="field"><span>ชื่อแผน *</span><input class="input" id="pm-name" name="name" required value="${esc(p?.name||'')}" placeholder="เช่น ล้างแผงคอยล์และตรวจน้ำยาแอร์"></label>
-    <label class="field"><span>อุปกรณ์ *</span>${equipCombo('pm-eq', p?.equipment)}</label>
+    <label class="field"><span>อุปกรณ์ *</span>${equipCombo('pm-eq', p?.equipment || presetEquip)}</label>
     <div class="grid2">
       <label class="field"><span>ความถี่</span><select class="input" id="pm-rec" name="recurrence_type">${Object.entries(RECUR).map(([k,v])=>`<option value="${k}" ${k===(p?.recurrence_type||'monthly')?'selected':''}>${v}</option>`).join('')}</select></label>
       <label class="field"><span>ทุก ๆ (จำนวน)</span><input class="input" id="pm-int" name="recurrence_interval" type="number" min="1" value="${p?.recurrence_interval||1}"></label>
@@ -1371,7 +1602,8 @@ function pmForm(p){
     </div>
     <label class="field"><span>ช่างผู้รับผิดชอบ</span><select class="input" id="pm-ass" name="default_assignee">${techOptions(p?.default_assignee, p?.team_id)}</select></label>
     <label class="field"><span>รายละเอียด</span><textarea class="input" id="pm-desc" name="description">${esc(p?.description||'')}</textarea></label>
-    <label class="field"><span>รายการตรวจเช็ก (บรรทัดละ 1 ข้อ)</span><textarea class="input" id="pm-chk" name="checklist" style="min-height:120px" placeholder="ตรวจวัดกระแสมอเตอร์&#10;ทำความสะอาดฟิลเตอร์&#10;ตรวจสอบเสียงผิดปกติ">${esc((p?.checklist||[]).map(c=>typeof c==='string'?c:c.item).join('\n'))}</textarea></label>
+    <label class="field"><span>รายการตรวจเช็ก (บรรทัดละ 1 ข้อ)</span><textarea class="input mono" id="pm-chk" name="checklist" style="min-height:140px;font-size:13px" placeholder="ทำความสะอาดฟิลเตอร์&#10;วัดกระแสมอเตอร์ | A | 0-12.5&#10;วัดอุณหภูมิลูกปืน | °C | -70">${esc((p?.checklist||[]).map(chkToLine).join('\n'))}</textarea>
+      <small class="hint">ข้อที่ต้องจดค่า ให้เขียนแบบ <b class="mono">ชื่อรายการ | หน่วย | ต่ำสุด-สูงสุด</b> เช่น <span class="mono">วัดแรงดันปั๊ม | bar | 3-5</span> ระบบจะตัดสินผ่าน/ไม่ผ่านให้เมื่อช่างกรอกค่า</small></label>
     <label class="check"><input type="checkbox" id="pm-act" ${p?.active!==false?'checked':''}> เปิดใช้งานแผนนี้</label>
     <div class="row"><button class="btn primary">บันทึกแผน</button>${p?'<button type="button" class="btn danger" id="pm-del">ลบแผน</button>':''}</div>
     <div id="pm-delbox" hidden class="note">ลบแผนนี้ถาวร? ใบงาน PM ที่สร้างไปแล้วจะยังอยู่ <div class="row" style="margin-top:8px"><button type="button" class="btn danger sm" id="pm-delgo">ยืนยันลบ</button></div></div>
@@ -1381,9 +1613,9 @@ function pmForm(p){
     e.preventDefault(); const f=formData(e.target); const eq=$('#pm-eq-val').value;
     if (!eq) return toast('กรุณาเลือกอุปกรณ์จากรายการค้นหา', true);
     const row = { name:f.name, equipment_id:eq, recurrence_type:f.recurrence_type, recurrence_interval:Math.max(1,Number(f.recurrence_interval)||1), next_due_date:f.next_due_date,
-      priority:f.priority, default_assignee:nz(f.default_assignee), team_id:nz(f.team_id), estimated_hours:Math.max(0.25,Number(f.estimated_hours)||2), description:nz(f.description), checklist:f.checklist.split('\n').map(s=>s.trim()).filter(Boolean), active:$('#pm-act').checked };
+      priority:f.priority, default_assignee:nz(f.default_assignee), team_id:nz(f.team_id), estimated_hours:Math.max(0.25,Number(f.estimated_hours)||2), description:nz(f.description), checklist:f.checklist.split('\n').map(s=>s.trim()).filter(Boolean).map(parseChkLine), active:$('#pm-act').checked };
     try { if (p) await q(sb.from('pm_schedules').update(row).eq('id',p.id)); else await q(sb.from('pm_schedules').insert({...row, created_by:uid()}));
-      closePanel(); toast('บันทึกแผน PM แล้ว'); PAGES.pm().catch(fail); } catch(err){ fail(err); }
+      closePanel(); toast('บันทึกแผน PM แล้ว'); S.route==='pm' ? PAGES.pm().catch(fail) : rerender(); } catch(err){ fail(err); }
   };
   if (p) { $('#pm-del').onclick=()=>$('#pm-delbox').hidden=false;
     $('#pm-delgo').onclick=async()=>{ try { await q(sb.from('work_orders').update({pm_schedule_id:null}).eq('pm_schedule_id',p.id)); await q(sb.from('pm_schedules').delete().eq('id',p.id)); closePanel(); toast('ลบแผนแล้ว'); PAGES.pm().catch(fail); } catch(e){ fail(e); } }; }
@@ -1554,7 +1786,7 @@ PAGES.equipment = async () => {
   const { data, count } = await q(qq.order('asset_code').range(f.page*size,f.page*size+size-1));
   const ST = {active:'ใช้งาน',inactive:'ไม่ใช้งาน',retired:'ปลดระวาง'};
   $('#view').innerHTML = `
-  <div class="page-head"><div><h1>ทะเบียนอุปกรณ์</h1><p>${fmtN(count,0)} รายการ</p></div>${can('asset.manage')?'<div class="row"><button class="btn" id="eqImp">นำเข้าจาก Excel</button><button class="btn primary" id="eqNew">+ เพิ่มอุปกรณ์</button></div>':''}</div>
+  <div class="page-head"><div><h1>ทะเบียนอุปกรณ์</h1><p>${fmtN(count,0)} รายการ · กดที่แถวเพื่อเปิดหน้ารายละเอียดเครื่อง</p></div><div class="row"><button class="btn" id="eqQr" title="พิมพ์สติกเกอร์ QR ของทุกเครื่องตามตัวกรองปัจจุบัน">${svgI('qr')} พิมพ์ QR (${fmtN(count,0)})</button>${can('asset.manage')?'<button class="btn" id="eqImp">นำเข้าจาก Excel</button><button class="btn primary" id="eqNew">+ เพิ่มอุปกรณ์</button>':''}</div></div>
   <div class="toolbar">
     <input class="input search" id="eqTerm" placeholder="ค้นหารหัสทรัพย์สิน ชื่อ หรือ Serial" value="${esc(f.term)}">
     <select class="input" id="eqCat"><option value="">ทุกหมวดหมู่</option>${eqCats.map(c=>`<option ${c===f.cat?'selected':''}>${esc(c)}</option>`).join('')}</select>
@@ -1562,7 +1794,7 @@ PAGES.equipment = async () => {
     <select class="input" id="eqSt"><option value="">ทุกสถานะ</option>${Object.entries(ST).map(([k,v])=>`<option value="${k}" ${k===f.status?'selected':''}>${v}</option>`).join('')}</select>
   </div>
   ${data.length?`<div class="tbl-wrap"><table><thead><tr><th>รหัสทรัพย์สิน</th><th>ชื่ออุปกรณ์</th><th>ระดับ</th><th>หมวดหมู่</th><th>สถานที่</th><th>ยี่ห้อ / รุ่น</th><th>ผู้ขาย</th><th>สถานะ</th></tr></thead><tbody>
-  ${data.map(e=>`<tr class="click" data-eq="${e.id}" tabindex="0"><td class="mono">${esc(e.asset_code)}</td><td>${esc(e.name)}</td><td>${critTag(e.criticality)}</td><td class="small">${esc(e.category||'–')}</td><td class="small">${esc(locLabel(e.location))}</td>
+  ${data.map(e=>`<tr class="click" data-eq="${e.id}" data-code="${esc(e.asset_code)}" tabindex="0"><td class="mono">${esc(e.asset_code)}</td><td>${esc(e.name)} ${critFlag(e.criticality)}</td><td>${critTag(e.criticality)}</td><td class="small">${esc(e.category||'–')}</td><td class="small">${esc(locLabel(e.location))}</td>
     <td class="small">${esc([e.manufacturer,e.model].filter(Boolean).join(' / ')||'–')}</td>
     <td class="small">${esc(e.supplier||'–')}</td>
     <td><span class="pill ${e.status==='active'?'st-done':'st-closed'}">${ST[e.status]}</span></td></tr>`).join('')}
@@ -1575,7 +1807,15 @@ PAGES.equipment = async () => {
   $('#eqSt').onchange=e=>{ f.status=e.target.value; f.page=0; PAGES.equipment().catch(fail); };
   bindPager(p=>{ f.page=p; PAGES.equipment().catch(fail); });
   if ($('#eqNew')) $('#eqNew').onclick=()=>eqForm();
-  $$('[data-eq]').forEach(tr=>{ tr.onclick=()=>eqDetail(tr.dataset.eq); tr.onkeydown=e=>{ if(e.key==='Enter') eqDetail(tr.dataset.eq); }; });
+  const goA = tr => { location.hash = '#asset/' + encodeURIComponent(tr.dataset.code); };
+  $$('[data-eq]').forEach(tr=>{ tr.onclick=()=>goA(tr); tr.onkeydown=e=>{ if(e.key==='Enter') goA(tr); }; });
+  $('#eqQr').onclick = async () => {
+    let qa = sb.from('equipment').select('id,asset_code,name,criticality,location:location_id(name)');
+    if (f.term) { const t=f.term.replace(/[,()%]/g,' '); qa=qa.or(`asset_code.ilike.%${t}%,name.ilike.%${t}%,serial_number.ilike.%${t}%`); }
+    if (f.cat) qa=qa.eq('category',f.cat); if (f.status) qa=qa.eq('status',f.status);
+    if (f.crit) qa = f.crit==='none' ? qa.is('criticality',null) : qa.eq('criticality',f.crit);
+    try { const { data:all } = await q(qa.order('asset_code').limit(2000)); printQR(all); } catch(err){ fail(err); }
+  };
 };
 async function eqDetail(id){
   openPanel('กำลังโหลด…','','<div class="loading">กำลังโหลด…</div>');
@@ -1605,7 +1845,7 @@ async function eqDetail(id){
     bindWoRows();
   } catch(err){ closePanel(); fail(err); }
 }
-function eqForm(e){
+function eqForm(e, after){
   openPanel(e?'แก้ไขอุปกรณ์':'เพิ่มอุปกรณ์', e?esc(e.asset_code):'', `
   <form id="eqForm" class="card">
     <div class="grid2">
@@ -1631,7 +1871,7 @@ function eqForm(e){
   $('#eqForm').onsubmit = async ev => {
     ev.preventDefault(); const f=formData(ev.target); const row={}; for (const k in f) row[k]=nz(f[k]);
     try { if (e) await q(sb.from('equipment').update(row).eq('id',e.id)); else await q(sb.from('equipment').insert({...row, created_by:uid()}));
-      eqCats=null; closePanel(); toast('บันทึกอุปกรณ์แล้ว'); PAGES.equipment().catch(fail); } catch(err){ fail(err); }
+      eqCats=null; closePanel(); toast('บันทึกอุปกรณ์แล้ว'); if (after) { if (e && row.asset_code && row.asset_code!==e.asset_code) location.hash='#asset/'+encodeURIComponent(row.asset_code); else after(); } else PAGES.equipment().catch(fail); } catch(err){ fail(err); }
   };
 }
 
@@ -1964,9 +2204,406 @@ function downloadCsv(name, rows){
   toast('ดาวน์โหลด '+name);
 }
 
+/* ============ SHARED: scripts, links, critical ============ */
+const _scripts = {};
+function loadScript(src){ return _scripts[src] || (_scripts[src] = new Promise((res, rej) => { const s=document.createElement('script'); s.src=src; s.onload=res; s.onerror=()=>{ delete _scripts[src]; rej(new Error('โหลดไลบรารีไม่สำเร็จ ตรวจสอบอินเทอร์เน็ต')); }; document.head.appendChild(s); })); }
+const QR_LIB = 'https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js';
+function appBaseUrl(){
+  if (/^https?:/.test(location.protocol)) return location.origin + location.pathname;
+  return S.cfg.general.public_url || 'https://n-phutt.github.io/mm-system/';
+}
+const assetUrl = code => appBaseUrl() + '#asset/' + encodeURIComponent(code);
+const critFlag = c => c==='critical' ? '<span class="crit-flag" title="เครื่อง Critical">⚠ Critical</span>' : '';
+async function qrSvg(text, cell=3){ await loadScript(QR_LIB); const qr = qrcode(0, 'M'); qr.addData(text); qr.make(); return qr.createSvgTag({ cellSize: cell, margin: 0, scalable: true }); }
+
+/* ============ PHOTOS ============ */
+const PHOTO_BUCKET = 'work-order-photos';
+function compressImage(file, max=1600, quality=0.8){
+  return new Promise((res, rej) => {
+    const img = new Image(); const url = URL.createObjectURL(file);
+    img.onload = () => { const r = Math.min(1, max/Math.max(img.width, img.height)); const c=document.createElement('canvas');
+      c.width=Math.round(img.width*r); c.height=Math.round(img.height*r); c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+      URL.revokeObjectURL(url); c.toBlob(b=> b ? res(b) : rej(new Error('แปลงรูปไม่สำเร็จ')), 'image/jpeg', quality); };
+    img.onerror = () => { URL.revokeObjectURL(url); rej(new Error('ไฟล์นี้ไม่ใช่รูปภาพ')); };
+    img.src = url;
+  });
+}
+async function uploadWoPhotos(woId, kind, files){
+  let n = 0;
+  for (const f of files) {
+    const blob = await compressImage(f);
+    const path = `${woId}/${kind}-${Date.now()}-${Math.random().toString(36).slice(2,7)}.jpg`;
+    const up = await sb.storage.from(PHOTO_BUCKET).upload(path, blob, { contentType:'image/jpeg', upsert:false });
+    if (up.error) throw up.error;
+    await q(sb.from('work_order_attachments').insert({ work_order_id:woId, storage_path:path, file_name:f.name||'photo.jpg', content_type:'image/jpeg', size_bytes:blob.size, uploaded_by:uid(), uploader_name:S.profile.full_name, kind }));
+    n++;
+  }
+  if (n) await sb.from('work_order_events').insert({ work_order_id:woId, actor_id:uid(), event_type:'comment', comment:`แนบรูป${kind==='before'?'ก่อนซ่อม':kind==='after'?'หลังซ่อม':''} ${n} รูป` });
+  return n;
+}
+const photoInput = (id, kind, label) => `<label class="btn photo-btn" for="${id}">${svgI('camera')} ${label}<input type="file" id="${id}" data-kind="${kind}" accept="image/*" capture="environment" multiple hidden></label>`;
+async function paintPhotos(w, box, canAdd){
+  const { data } = await sb.from('work_order_attachments').select('*').eq('work_order_id', w.id).order('created_at');
+  const list = data || [];
+  let urls = {};
+  if (list.length) { const r = await sb.storage.from(PHOTO_BUCKET).createSignedUrls(list.map(a=>a.storage_path), 3600); (r.data||[]).forEach(x=>{ if (x.signedUrl) urls[x.path]=x.signedUrl; }); }
+  const group = k => list.filter(a=>(a.kind||'other')===k);
+  const thumbs = arr => arr.length ? `<div class="thumbs">${arr.map(a=>`<a href="${esc(urls[a.storage_path]||'#')}" target="_blank" rel="noopener" title="${esc(a.uploader_name||'')} · ${fmtDT(a.created_at)}"><img src="${esc(urls[a.storage_path]||'')}" alt="รูปใบงาน" loading="lazy"></a>`).join('')}</div>` : '<p class="small muted" style="margin:0">ยังไม่มีรูป</p>';
+  box.innerHTML = `<div class="card-head"><h3>รูปภาพ</h3><span class="small muted">${list.length} รูป</span></div>
+    <div class="photo-cols"><div><div class="label">ก่อนซ่อม</div>${thumbs(group('before'))}</div><div><div class="label">หลังซ่อม</div>${thumbs(group('after'))}</div>${group('other').length?`<div><div class="label">อื่น ๆ</div>${thumbs(group('other'))}</div>`:''}</div>
+    ${canAdd?`<div class="row">${photoInput('ph-before','before','รูปก่อนซ่อม')}${photoInput('ph-after','after','รูปหลังซ่อม')}<span class="small muted" id="phMsg"></span></div>`:''}`;
+  $$('input[type=file][data-kind]', box).forEach(inp => inp.onchange = async () => {
+    if (!inp.files.length) return; $('#phMsg').textContent = 'กำลังอัปโหลด…';
+    try { const n = await uploadWoPhotos(w.id, inp.dataset.kind, [...inp.files]); toast(`อัปโหลด ${n} รูปแล้ว`); paintPhotos(w, box, canAdd); } catch(e){ fail(e); $('#phMsg').textContent=''; }
+  });
+}
+
+/* ============ PM CHECKLIST EXECUTION ============ */
+function chkItem(c){ if (typeof c==='string') return { item:c }; return { item:c?.item||'', unit:c?.unit||'', min:c?.min??null, max:c?.max??null }; }
+const chkMeasure = x => !!(x.unit || x.min!=null || x.max!=null);
+function chkToLine(c){ const x=chkItem(c); if (!chkMeasure(x)) return x.item; const rng = (x.min!=null||x.max!=null) ? `${x.min??''}-${x.max??''}` : ''; return [x.item, x.unit||'', rng].join(' | ').replace(/( \| )+$/,''); }
+function parseChkLine(s){
+  const p = s.split('|').map(x=>x.trim()); if (p.length < 2) return s.trim();
+  const o = { item:p[0] }; if (p[1]) o.unit = p[1];
+  if (p[2]) { const m = p[2].match(/^(-?\d*\.?\d*)\s*-\s*(-?\d*\.?\d*)$/); if (m) { if (m[1]!=='') o.min=Number(m[1]); if (m[2]!=='') o.max=Number(m[2]); } }
+  return o;
+}
+const rangeText = x => (x.min!=null||x.max!=null) ? `เกณฑ์ ${x.min??'…'}–${x.max??'…'} ${x.unit||''}` : (x.unit?`หน่วย ${x.unit}`:'');
+function pmChecklistHTML(w, checklist, results, editable){
+  const R = {}; (results||[]).forEach(r=>R[r.idx]=r);
+  const done = Object.values(R).filter(r=>r.result).length, fails = Object.values(R).filter(r=>r.result==='fail').length;
+  const RL = { pass:['ผ่าน','ok'], fail:['ไม่ผ่าน','bad'], na:['N/A','na'] };
+  return `<div class="card-head"><h3>รายการตรวจเช็ก PM</h3><span class="small ${fails?'sla bad':'muted'}">${done}/${checklist.length} ข้อ${fails?` · ไม่ผ่าน ${fails}`:''}</span></div>
+  <div class="chk-list">${checklist.map((c,i)=>{ const x=chkItem(c), r=R[i]||{};
+    return `<div class="chk-row" data-i="${i}">
+      <div class="chk-t"><b>${i+1}. ${esc(x.item)}</b>${chkMeasure(x)?`<span class="small muted">${esc(rangeText(x))}</span>`:''}</div>
+      ${editable ? `<div class="chk-in">
+        ${chkMeasure(x)?`<span class="chk-val"><input class="input mono" type="number" step="any" inputmode="decimal" data-v value="${r.value??''}" placeholder="ค่าที่วัด">${x.unit?`<span class="small">${esc(x.unit)}</span>`:''}</span>`:''}
+        <div class="seg" role="group">${Object.entries(RL).map(([k,[l,c]])=>`<button type="button" class="seg-b ${c} ${r.result===k?'on':''}" data-r="${k}">${l}</button>`).join('')}</div>
+        <input class="input chk-note" data-n value="${esc(r.note||'')}" placeholder="หมายเหตุ (ถ้ามี)"></div>`
+      : `<div class="chk-in">${r.value!=null?`<span class="mono">${fmtN(r.value,2)} ${esc(r.unit||x.unit||'')}</span>`:''}${r.result?`<span class="pill ${r.result==='pass'?'st-done':r.result==='fail'?'st-cancelled-bad':'st-closed'}">${RL[r.result][0]}</span>`:'<span class="small muted">ยังไม่บันทึก</span>'}${r.note?`<span class="small muted">${esc(r.note)}</span>`:''}</div>`}
+    </div>`; }).join('')}</div>
+  ${editable?`<div class="row"><button type="button" class="btn" data-pm="save">บันทึกผล</button><button type="button" class="btn ok" data-pm="complete">บันทึกและปิดงาน PM</button><span class="small muted">ข้อที่ไม่ผ่าน ระบบจะเปิดใบงานซ่อมต่อให้อัตโนมัติ</span></div>`:''}`;
+}
+function bindPmChecklist(w, checklist, box, after){
+  $$('.chk-row', box).forEach(row => {
+    const i = Number(row.dataset.i), x = chkItem(checklist[i]);
+    $$('.seg-b', row).forEach(b => b.onclick = () => { $$('.seg-b', row).forEach(o=>o.classList.toggle('on', o===b)); });
+    const v = $('[data-v]', row);
+    if (v) v.oninput = () => { if (v.value==='') return; const n=Number(v.value); const out=(x.min!=null&&n<x.min)||(x.max!=null&&n>x.max);
+      $$('.seg-b', row).forEach(o=>o.classList.toggle('on', o.dataset.r === (out?'fail':'pass'))); };
+  });
+  const collect = () => $$('.chk-row', box).map(row => { const i=Number(row.dataset.i), x=chkItem(checklist[i]);
+    return { idx:i, item:x.item, result:$('.seg-b.on', row)?.dataset.r||'', value:$('[data-v]', row)?.value||'', unit:x.unit||'', note:$('[data-n]', row)?.value.trim()||'' }; });
+  $$('[data-pm]', box).forEach(b => b.onclick = async () => {
+    const res = collect(), complete = b.dataset.pm==='complete';
+    if (complete && res.some(r=>!r.result)) return toast(`ยังไม่ได้บันทึกผล ${res.filter(r=>!r.result).length} ข้อ`, true);
+    b.disabled = true;
+    try { const { data } = await q(sb.rpc('submit_pm_results', { p_wo:w.id, p_results:res, p_complete:complete }));
+      toast(complete ? (data.fails ? `ปิดงาน PM แล้ว · เปิดใบงานซ่อมต่อ ${data.follow_up_code||''}` : 'ปิดงาน PM แล้ว ผ่านทุกข้อ') : 'บันทึกผลตรวจแล้ว');
+      after && after(data);
+    } catch(e){ fail(e); b.disabled=false; }
+  });
+}
+
+/* ============ QUICK ACTIONS (finish, assign) ============ */
+const FIX_CHIPS = ['เปลี่ยนอะไหล่','ปรับตั้ง/ขันแน่น','ทำความสะอาด','หล่อลื่น','ซ่อมระบบไฟฟ้า','รีเซ็ตระบบ'];
+function quickFinish(w, after){
+  openPanel(`ซ่อมเสร็จ · <span class="mono">${esc(w.code)}</span>`, esc(w.title), `
+  <form class="card" id="qfForm">
+    <label class="field"><span>สาเหตุของปัญหา</span><input class="input" id="qf-cause" value="${esc(w.failure_cause||'')}" placeholder="เช่น ลูกปืนสึก, ฟิวส์ขาด"></label>
+    <div class="field"><span>งานที่ทำ <em class="req">*</em></span><div class="chips">${FIX_CHIPS.map(c=>`<button type="button" class="qchip" data-chip="${esc(c)}">${esc(c)}</button>`).join('')}</div>
+      <textarea class="input" id="qf-text" required placeholder="อธิบายงานที่ทำ">${esc(w.resolution||'')}</textarea></div>
+    <div class="row">${photoInput('qf-photo','after','ถ่ายรูปหลังซ่อม')}<span class="small muted" id="qf-ph"></span></div>
+    <button class="btn ok big">${svgI('check')} ยืนยันซ่อมเสร็จ</button>
+  </form>`);
+  let files = [];
+  $$('[data-chip]').forEach(b=>b.onclick=()=>{ const t=$('#qf-text'); t.value = t.value ? t.value.replace(/\s*$/,'') + ', ' + b.dataset.chip : b.dataset.chip; t.focus(); });
+  $('#qf-photo').onchange = e => { files=[...e.target.files]; $('#qf-ph').textContent = files.length ? `เลือก ${files.length} รูป` : ''; };
+  $('#qfForm').onsubmit = async e => { e.preventDefault(); const r=$('#qf-text').value.trim(); if (!r) return toast('กรุณาบันทึกงานที่ทำ', true);
+    const btn=$('#qfForm .btn.ok'); btn.disabled=true;
+    try {
+      if (files.length) await uploadWoPhotos(w.id, 'after', files);
+      await q(sb.from('work_orders').update({ status:'done', resolution:r, failure_cause:nz($('#qf-cause').value.trim()) }).eq('id', w.id));
+      closePanel(); toast(`${w.code} ซ่อมเสร็จแล้ว`); refreshOpenCount(); after && after();
+    } catch(err){ fail(err); btn.disabled=false; }
+  };
+}
+function quickAssign(w, nextStatus, after){
+  openPanel(`มอบหมายงาน · <span class="mono">${esc(w.code)}</span>`, esc(w.title), `
+  <form class="card" id="qaForm">
+    <label class="field"><span>ทีม</span><select class="input" id="qa-team">${teamOptions(w.team_id)}</select></label>
+    <label class="field"><span>ช่างผู้รับผิดชอบ <em class="req">*</em></span><select class="input" id="qa-tech" required>${techOptions(w.assigned_to, w.team_id)}</select></label>
+    <button class="btn primary">มอบหมาย${nextStatus==='in_progress'?' และเริ่มซ่อม':''}</button>
+  </form>`);
+  $('#qa-team').onchange = () => { $('#qa-tech').innerHTML = techOptions($('#qa-tech').value, $('#qa-team').value); };
+  $('#qaForm').onsubmit = async e => { e.preventDefault(); const t=$('#qa-tech').value; if (!t) return toast('เลือกช่างก่อน', true);
+    try { await q(sb.from('work_orders').update({ assigned_to:t, team_id:nz($('#qa-team').value), status:'assigned' }).eq('id', w.id));
+      if (nextStatus==='in_progress') await q(sb.from('work_orders').update({ status:'in_progress' }).eq('id', w.id));
+      closePanel(); toast('มอบหมายงานแล้ว'); after && after(); } catch(err){ fail(err); } };
+}
+
+/* ============ MY JOBS (mobile-first) ============ */
+PAGES.my = async () => {
+  const sel = 'id,code,title,description,status,priority,source,created_at,due_date,sla_resolve_due,completed_at,equipment_down,assigned_to,pm_schedule_id,equipment:equipment_id(asset_code,name,criticality),location:location_id(name)';
+  const [{data:mine},{data:pool},{data:done}] = await Promise.all([
+    q(sb.from('work_orders').select(sel).eq('assigned_to', uid()).in('status', OPEN).order('sla_resolve_due',{nullsFirst:false})),
+    q(sb.from('work_orders').select(sel).is('assigned_to', null).eq('status','new').order('created_at').limit(20)),
+    q(sb.from('work_orders').select('id',{count:'exact',head:false}).eq('assigned_to', uid()).gte('completed_at', new Date(Date.now()-864e5).toISOString()))
+  ]);
+  const card = (w, isPool) => {
+    const next = isPool ? ['claim','รับงานนี้','primary'] : w.status==='in_progress' ? ['finish', w.source==='pm'?'บันทึกผล PM':'ซ่อมเสร็จ','ok'] : ['start','เริ่มซ่อม','primary'];
+    return `<article class="job ${w.priority==='urgent'||w.equipment_down?'hot':''}" data-job="${w.id}">
+      <div class="job-top"><span class="mono job-code">${esc(w.code)}</span>${prioTag(w.priority)}${w.source==='pm'?'<span class="pill plain">PM</span>':''}${critFlag(w.equipment?.criticality)}<span class="job-sla">${slaTag(w)}</span></div>
+      <h3 class="job-title">${esc(w.title)}</h3>
+      <div class="job-meta">${w.equipment?`<span class="mono">${esc(w.equipment.asset_code)}</span> ${esc(w.equipment.name)}`:'ไม่ระบุอุปกรณ์'}${w.location?` · ${esc(w.location.name)}`:''}${w.equipment_down?' · <b class="down">เครื่องหยุด</b>':''}</div>
+      <div class="job-status">${statusPill(w.status)} <span class="small muted">แจ้ง ${timeAgo(w.created_at)}ที่แล้ว</span></div>
+      <div class="job-acts"><button class="btn ${next[2]} big" data-do="${next[0]}">${next[1]}</button>
+        ${!isPool?`<label class="btn big icon-only" title="ถ่ายรูป">${svgI('camera')}<input type="file" accept="image/*" capture="environment" multiple hidden data-snap></label>`:''}
+        ${!isPool && w.status==='in_progress'?`<button class="btn big" data-do="hold" title="พักงาน">พัก</button>`:''}
+        <button class="btn big" data-do="open">รายละเอียด</button></div>
+    </article>`; };
+  $('#view').innerHTML = `
+  <div class="page-head"><div><h1>งานของฉัน</h1><p>${mine.length} งานค้าง · เสร็จใน 24 ชม. ${done.length} งาน</p></div><a class="btn primary" href="#new">+ แจ้งซ่อม</a></div>
+  ${mine.length?`<div class="jobs">${mine.map(w=>card(w,false)).join('')}</div>`:'<section class="card"><div class="empty">ไม่มีงานค้าง 👍</div></section>'}
+  ${can('wo.edit')?`<h2 class="sec-h">งานใหม่ที่รอรับ <span class="small muted">(${pool.length})</span></h2>${pool.length?`<div class="jobs">${pool.map(w=>card(w,true)).join('')}</div>`:'<section class="card"><div class="empty">ไม่มีงานรอรับ</div></section>'}`:''}`;
+  const all = [...mine, ...pool];
+  $$('[data-job]').forEach(el => { const w = all.find(x=>x.id===el.dataset.job);
+    $$('[data-do]', el).forEach(b => b.onclick = async () => { const d=b.dataset.do; b.disabled=true;
+      try {
+        if (d==='open') { b.disabled=false; return openWO(w.id); }
+        if (d==='claim') { await q(sb.rpc('claim_work_order',{p_id:w.id})); toast(`รับงาน ${w.code} แล้ว`); }
+        if (d==='start') { await q(sb.from('work_orders').update({status:'in_progress'}).eq('id',w.id)); toast(`เริ่มซ่อม ${w.code}`); }
+        if (d==='hold') { await q(sb.from('work_orders').update({status:'on_hold'}).eq('id',w.id)); toast(`พักงาน ${w.code}`); }
+        if (d==='finish') { b.disabled=false; return w.source==='pm' && w.pm_schedule_id ? openWO(w.id) : quickFinish(w, ()=>PAGES.my().catch(fail)); }
+        refreshOpenCount(); PAGES.my().catch(fail);
+      } catch(e){ fail(e); b.disabled=false; } });
+    const snap = $('[data-snap]', el);
+    if (snap) snap.onchange = async () => { if (!snap.files.length) return; try { const n = await uploadWoPhotos(w.id, w.status==='in_progress'?'after':'before', [...snap.files]); toast(`อัปโหลด ${n} รูปแล้ว`); } catch(e){ fail(e); } };
+  });
+};
+
+/* ============ QR PRINT ============ */
+async function printQR(list){
+  if (!list.length) return toast('ไม่มีอุปกรณ์ให้พิมพ์', true);
+  document.getElementById('printArea')?.remove();
+  const wrap = document.createElement('div'); wrap.id='printArea'; wrap.className='print-area';
+  wrap.innerHTML = `<div class="print-bar no-print"><b>พิมพ์สติกเกอร์ QR · ${list.length} เครื่อง</b>
+      <label class="small">ขนาด <select class="input" id="prSize" style="width:auto"><option value="m">กลาง 63.5×38 มม. (21 ดวง/A4)</option><option value="l">ใหญ่ 99×67 มม. (8 ดวง/A4)</option><option value="s">เล็ก 48×25 มม. (40 ดวง/A4)</option></select></label>
+      <button class="btn primary" id="prGo">${svgI('reports')} พิมพ์</button><button class="btn" id="prClose">ปิด</button>
+      <span class="small muted">QR เปิดลิงก์ ${esc(appBaseUrl())}#asset/…</span></div>
+    <div class="labels m" id="prLabels"><div class="loading">กำลังสร้าง QR…</div></div>`;
+  document.body.appendChild(wrap); document.body.classList.add('printing');
+  $('#prClose').onclick = () => { wrap.remove(); document.body.classList.remove('printing'); };
+  $('#prSize').onchange = e => { $('#prLabels').className = 'labels ' + e.target.value; };
+  $('#prGo').onclick = () => window.print();
+  try {
+    const svgs = await Promise.all(list.map(e=>qrSvg(assetUrl(e.asset_code))));
+    const org = esc(S.cfg.general.short_name||'MS');
+    $('#prLabels').innerHTML = list.map((e,i)=>`<div class="lbl ${e.criticality==='critical'?'lbl-crit':''}"><div class="lbl-qr">${svgs[i]}</div><div class="lbl-t"><b class="mono">${esc(e.asset_code)}</b><span>${esc(e.name)}</span><small>${esc(e.location?.name||e.location||'')}</small><small class="lbl-foot">${e.criticality==='critical'?'⚠ CRITICAL · ':''}${org} · สแกนเพื่อแจ้งซ่อม</small></div></div>`).join('');
+  } catch(err){ fail(err); }
+}
+
+/* ============ ASSET PAGE (#asset/CODE) ============ */
+const DOC_BUCKET = 'asset-docs';
+PAGES.asset = async (code) => {
+  const { data:e } = await q(sb.from('equipment').select('*,location:location_id(id,name,building,floor)').eq('asset_code', code).maybeSingle());
+  if (!e) { $('#view').innerHTML = `<section class="card"><div class="empty">ไม่พบเครื่องรหัส <b class="mono">${esc(code)}</b><br><a href="#equipment">กลับไปทะเบียนอุปกรณ์</a></div></section>`; return; }
+  const [{data:st},{data:wos},{data:docs}] = await Promise.all([
+    q(sb.rpc('get_equipment_stats', { p_id:e.id })),
+    q(sb.from('work_orders').select('id,code,title,status,priority,source,created_at,completed_at,sla_resolve_due,equipment_down,downtime_start,downtime_end,failure_cause,resolution,assignee:profiles!work_orders_assigned_to_fkey(full_name)').eq('equipment_id', e.id).order('created_at',{ascending:false}).limit(60)),
+    sb.from('equipment_docs').select('*').eq('equipment_id', e.id).order('created_at',{ascending:false})
+  ]);
+  const openW = wos.filter(w=>OPEN.includes(w.status));
+  const state = openW.some(w=>w.equipment_down) ? ['หยุดทำงาน','bad'] : openW.some(w=>w.source!=='pm') ? ['กำลังซ่อม','warn'] : openW.length ? ['กำลังทำ PM','info'] : ['ปกติ','ok'];
+  const nextPm = (st.pm_plans||[]).filter(p=>p.active).sort((a,b)=>a.next>b.next?1:-1)[0];
+  const maxM = Math.max(1, ...(st.monthly||[]).map(m=>m.cm+m.pm));
+  $('#crumb').textContent = e.asset_code; $('#crumb2').textContent = e.name;
+  $('#view').innerHTML = `
+  <nav class="bc small"><a href="#equipment">ทะเบียนอุปกรณ์</a><span>›</span><span>${esc(e.asset_code)}</span></nav>
+  <section class="card asset-hero">
+    <div class="ah-main">
+      <div class="row" style="gap:8px"><span class="state-dot s-${state[1]}"></span><b class="mono ah-code">${esc(e.asset_code)}</b>${e.criticality==='critical'?critFlag(e.criticality):critTag(e.criticality)}<span class="pill st-${state[1]==='ok'?'done':state[1]==='bad'?'cancelled-bad':state[1]==='warn'?'in_progress':'new'}">${state[0]}</span></div>
+      <h1>${esc(e.name)}</h1>
+      <p class="muted" style="margin:0">${esc([e.category, locLabel(e.location), [e.manufacturer,e.model].filter(Boolean).join(' / ')].filter(x=>x&&x!=='–').join(' · '))}</p>
+    </div>
+    <div class="ah-acts">
+      ${can('wo.create')?`<button class="btn primary" id="aReport">${svgI('new')} แจ้งซ่อมเครื่องนี้</button>`:''}
+      ${can('pm.manage')?`<button class="btn" id="aPm">${svgI('pm')} สร้างแผน PM</button>`:''}
+      <button class="btn" id="aQr">${svgI('qr')} พิมพ์ QR</button>
+      ${can('asset.manage')?`<button class="btn" id="aEdit">${svgI('edit')} แก้ไข</button>`:''}
+    </div>
+  </section>
+  <section class="kpis">
+    ${kpi('wo','เสีย 12 เดือน', st.failures_12m, 'ครั้ง', `งานค้างตอนนี้ ${openW.length}`, st.failures_12m>3?'bad':'accent')}
+    ${kpi('clock','MTTR', st.mttr_h??'–', st.mttr_h!=null?'ชม.':'', 'เวลาซ่อมเฉลี่ย', 'violet')}
+    ${kpi('pulse','MTBF', st.mtbf_h!=null?fmtN(st.mtbf_h,0):'–', st.mtbf_h!=null?'ชม.':'', 'เวลาเฉลี่ยระหว่างการเสีย', 'info')}
+    ${kpi('sla','Availability', st.availability??'–', st.availability!=null?'%':'', `หยุดเครื่อง ${fmtN(st.downtime_h_12m,1)} ชม. / 12 เดือน`, st.availability!=null&&st.availability<S.cfg.targets.availability_target?'bad':'ok')}
+    ${kpi('pm','PM ครั้งถัดไป', nextPm?fmtD(nextPm.next):'–', '', nextPm?esc(nextPm.name):'ยังไม่มีแผน PM', nextPm&&nextPm.next<today()?'bad':'ok')}
+    ${kpi('check','PM ที่ทำใน 12 เดือน', st.pm_done_12m, 'ครั้ง', `${(st.pm_plans||[]).filter(p=>p.active).length} แผนที่ใช้งาน`, 'ok')}
+  </section>
+  <div class="asset-grid">
+    <div class="ag-main">
+      <section class="card"><div class="card-head"><h2>ประวัติงาน</h2><span class="small muted">${wos.length} ใบงานล่าสุด</span></div>
+        ${wos.length?`<ul class="atl">${wos.map(w=>`<li class="${w.source==='pm'?'is-pm':w.equipment_down?'is-down':''}" data-wo="${w.id}" tabindex="0">
+          <div class="atl-d"><b>${new Intl.DateTimeFormat('th-TH',{day:'numeric',month:'short',timeZone:TZ}).format(new Date(w.created_at))}</b><small>${new Date(w.created_at).toLocaleDateString('th-TH',{year:'2-digit',timeZone:TZ}).slice(-2)}</small></div>
+          <div class="atl-b"><div class="row" style="gap:6px"><span class="mono small">${esc(w.code)}</span>${statusPill(w.status)}${w.source==='pm'?'<span class="pill plain">PM</span>':prioTag(w.priority)}${w.equipment_down?`<span class="down small">หยุด ${dur(((w.downtime_end?new Date(w.downtime_end):new Date())-new Date(w.downtime_start))/36e5)}</span>`:''}</div>
+            <b class="atl-t">${esc(w.title)}</b>
+            ${w.failure_cause||w.resolution?`<div class="small muted">${w.failure_cause?'สาเหตุ: '+esc(w.failure_cause)+' · ':''}${w.resolution?'แก้ไข: '+esc(w.resolution):''}</div>`:''}
+            <div class="small muted">${esc(w.assignee?.full_name||'ยังไม่มอบหมาย')}${w.completed_at?' · เสร็จใน '+dur((new Date(w.completed_at)-new Date(w.created_at))/36e5):''}</div></div></li>`).join('')}</ul>`:'<div class="empty">ยังไม่มีประวัติงานของเครื่องนี้</div>'}
+      </section>
+    </div>
+    <div class="ag-side">
+      <section class="card"><div class="card-head"><h2>งานรายเดือน</h2><div class="legend"><span><i style="background:var(--bad)"></i>ซ่อม</span><span><i style="background:var(--ok)"></i>PM</span></div></div>
+        <div class="mbars">${(st.monthly||[]).map(m=>`<div class="mb" title="${m.m}: ซ่อม ${m.cm} · PM ${m.pm}"><div class="mb-s"><i style="height:${m.pm/maxM*100}%;background:var(--ok)"></i><i style="height:${m.cm/maxM*100}%;background:var(--bad)"></i></div><small>${new Intl.DateTimeFormat('th-TH',{month:'narrow'}).format(new Date(m.m+'-01T00:00:00'))}</small></div>`).join('')}</div>
+      </section>
+      <section class="card"><h2>แผน PM</h2>
+        ${(st.pm_plans||[]).length?`<ul class="pm-list">${st.pm_plans.map(p=>`<li><a href="#pm"><span class="pm-name">${esc(p.name)}</span><span class="small muted">${esc(recurText({recurrence_type:p.rec,recurrence_interval:p.int}))}${p.active?'':' · ปิดใช้งาน'}</span></a><span class="small ${p.next<today()?'sla bad':'muted'}">${fmtD(p.next)}</span></li>`).join('')}</ul>`:'<div class="empty">ยังไม่มีแผน PM</div>'}
+      </section>
+      <section class="card"><h2>อะไหล่ที่เคยใช้</h2>
+        ${(st.parts||[]).length?`<div class="tbl-wrap"><table class="compact"><thead><tr><th>อะไหล่</th><th class="num">จำนวน</th><th class="num">มูลค่า</th></tr></thead><tbody>${st.parts.map(p=>`<tr><td><span class="mono">${esc(p.part_code)}</span> ${esc(p.name)}<div class="small muted">ล่าสุด ${fmtD(p.last_used)}</div></td><td class="num mono">${fmtN(p.qty,2)} ${esc(p.unit)}</td><td class="num mono">฿${fmtN(p.cost,0)}</td></tr>`).join('')}</tbody></table></div>`:'<div class="empty">ยังไม่มีการเบิกอะไหล่</div>'}
+      </section>
+      <section class="card" id="aDocs"><div class="card-head"><h2>เอกสาร / คู่มือ</h2>${can('asset.manage')?`<label class="btn sm" for="docUp">${svgI('plus')} แนบไฟล์<input type="file" id="docUp" accept=".pdf,image/*,.doc,.docx,.xls,.xlsx" multiple hidden></label>`:''}</div>
+        ${(docs||[]).length?`<ul class="docs">${docs.map(d=>`<li><button class="doc-open" data-doc="${d.id}">${svgI('wo')}<span><b>${esc(d.title||d.file_name)}</b><small class="muted">${esc(d.file_name)} · ${fmtN((d.size_bytes||0)/1024/1024,1)} MB · ${fmtD(d.created_at)}</small></span></button>${can('asset.manage')?`<button class="icon-btn del" data-docdel="${d.id}" title="ลบไฟล์">${svgI('trash')}</button>`:''}</li>`).join('')}</ul>`:'<div class="empty small">ยังไม่มีเอกสาร · แนบคู่มือ แบบ หรือใบรับประกันได้ (PDF ไม่เกิน 25 MB)</div>'}
+        <span class="small muted" id="docMsg"></span>
+      </section>
+      <section class="card"><h2>ข้อมูลเครื่อง</h2><dl class="kv">
+        <dt>ผู้ผลิต / ผู้ขาย</dt><dd>${esc(e.supplier||'–')}</dd><dt>Serial No.</dt><dd class="mono">${esc(e.serial_number||'–')}</dd>
+        <dt>หมายเลขสินทรัพย์</dt><dd class="mono">${esc(e.asset_number||'–')}</dd><dt>วันที่ติดตั้ง</dt><dd>${fmtD(e.purchase_date)}</dd>
+        <dt>ประกันถึง</dt><dd>${fmtD(e.warranty_expiry)}</dd><dt>หมายเหตุ</dt><dd style="white-space:pre-wrap">${esc(e.notes||'–')}</dd></dl></section>
+    </div>
+  </div>`;
+  const reAsset = () => PAGES.asset(code).catch(fail);
+  if ($('#aReport')) $('#aReport').onclick = () => { location.hash='#new'; setTimeout(()=>PAGES.new({id:e.id,asset_code:e.asset_code,name:e.name,location_id:e.location_id}).catch(fail),50); };
+  if ($('#aPm')) $('#aPm').onclick = () => pmForm(null, e);
+  $('#aQr').onclick = () => printQR([{...e, location:e.location}]);
+  if ($('#aEdit')) $('#aEdit').onclick = () => eqForm(e, reAsset);
+  $$('[data-wo]').forEach(li => { li.onclick = () => openWO(li.dataset.wo); li.onkeydown = ev => { if (ev.key==='Enter') openWO(li.dataset.wo); }; });
+  $$('[data-doc]').forEach(b => b.onclick = async () => { const d=docs.find(x=>x.id===b.dataset.doc);
+    const { data, error } = await sb.storage.from(DOC_BUCKET).createSignedUrl(d.storage_path, 600); if (error) return fail(error); window.open(data.signedUrl, '_blank', 'noopener'); });
+  $$('[data-docdel]').forEach(b => b.onclick = async () => { if (b.dataset.confirm!=='1') { b.dataset.confirm='1'; b.title='กดอีกครั้งเพื่อยืนยันลบ'; b.classList.add('armed'); return; }
+    const d=docs.find(x=>x.id===b.dataset.docdel); try { await sb.storage.from(DOC_BUCKET).remove([d.storage_path]); await q(sb.from('equipment_docs').delete().eq('id',d.id)); toast('ลบไฟล์แล้ว'); reAsset(); } catch(err){ fail(err); } });
+  if ($('#docUp')) $('#docUp').onchange = async ev => { const files=[...ev.target.files]; if (!files.length) return; $('#docMsg').textContent='กำลังอัปโหลด…';
+    try { for (const f of files) { if (f.size > 25*1024*1024) throw new Error(`${f.name} ใหญ่เกิน 25 MB`);
+        const safe = f.name.replace(/[^\w.\-]+/g,'_'); const path = `${e.id}/${Date.now()}-${safe}`;
+        const up = await sb.storage.from(DOC_BUCKET).upload(path, f, { contentType:f.type||'application/octet-stream' }); if (up.error) throw up.error;
+        await q(sb.from('equipment_docs').insert({ equipment_id:e.id, storage_path:path, file_name:f.name, content_type:f.type, size_bytes:f.size, title:f.name.replace(/\.[^.]+$/,''), uploaded_by:uid() })); }
+      toast(`แนบไฟล์ ${files.length} รายการแล้ว`); reAsset(); } catch(err){ fail(err); $('#docMsg').textContent=''; } };
+};
+
+/* public machine card (QR scanned without login) */
+async function renderPublicAsset(code){
+  const { data:e } = await sb.rpc('public_equipment_card', { p_code: code });
+  $('#root').innerHTML = `<div class="login-form" style="min-height:100%;align-items:start;padding-top:40px"><div class="login-card" style="max-width:480px">
+    <div class="brand" style="color:var(--ink)">${brandHTML()}</div>
+    ${e ? `<section class="card"><div class="row" style="gap:8px"><b class="mono" style="font-size:18px">${esc(e.asset_code)}</b>${critTag(e.criticality)}</div><h2>${esc(e.name)}</h2>
+        <p class="muted" style="margin:0">${esc([e.category, e.location].filter(Boolean).join(' · '))}</p>
+        ${e.open?`<div class="note">เครื่องนี้มีงานซ่อมที่กำลังดำเนินการอยู่ ${e.open} งาน</div>`:''}</section>
+      <a class="btn primary big" href="#report/${encodeURIComponent(e.asset_code)}">${svgI('new')} แจ้งซ่อมเครื่องนี้</a>
+      <button class="btn big" id="paLogin">เข้าสู่ระบบเพื่อดูประวัติและรับงาน</button>`
+      : `<div class="empty">ไม่พบเครื่องรหัส <b class="mono">${esc(code)}</b></div><a class="btn" href="#report">แจ้งซ่อมทั่วไป</a>`}
+  </div></div>`;
+  if ($('#paLogin')) $('#paLogin').onclick = () => renderLogin();
+}
+
+/* ============ PLANT BOARD (#board) ============ */
+let boardTimer = null, boardFilter = { st:'', crit:false, term:'' };
+PAGES.board = async () => {
+  clearInterval(boardTimer);
+  const { data } = await q(sb.rpc('get_plant_board'));
+  const f = boardFilter;
+  const rows = data.filter(r => (!f.st || r.state===f.st) && (!f.crit || r.criticality==='critical') && (!f.term || (r.asset_code+' '+r.name).toLowerCase().includes(f.term.toLowerCase())));
+  const cnt = k => data.filter(r=>r.state===k).length;
+  const groups = {}; rows.forEach(r => (groups[r.location||'ไม่ระบุพื้นที่'] = groups[r.location||'ไม่ระบุพื้นที่'] || []).push(r));
+  const order = Object.entries(groups).sort((a,b)=> (b[1].filter(r=>r.state!=='ok').length - a[1].filter(r=>r.state!=='ok').length) || b[1].length - a[1].length);
+  const SL = { ok:'ปกติ', pm:'กำลังทำ PM', repair:'กำลังซ่อม', down:'หยุดทำงาน' };
+  const avail = data.length ? (data.length - cnt('down')) / data.length * 100 : 100;
+  $('#view').innerHTML = `
+  <div class="page-head board-head"><div><h1>ผังสถานะเครื่องจักร</h1><p>${data.length} เครื่อง · ${Object.keys(groups).length} พื้นที่ · อัปเดต ${new Intl.DateTimeFormat('th-TH',{timeStyle:'short',timeZone:TZ}).format(new Date())} · รีเฟรชอัตโนมัติทุก 60 วินาที</p></div>
+    <div class="row"><button class="btn" id="bdRefresh">รีเฟรช</button><button class="btn primary" id="bdTv">${svgI('board')} ${document.body.classList.contains('tv')?'ออกจากโหมดจอ TV':'โหมดจอ TV'}</button></div></div>
+  <section class="board-sum">
+    ${[['ok','ปกติ'],['pm','กำลังทำ PM'],['repair','กำลังซ่อม'],['down','หยุดทำงาน']].map(([k,l])=>`<button class="bs bs-${k} ${f.st===k?'on':''}" data-bst="${k}"><b class="mono">${cnt(k)}</b><span>${l}</span></button>`).join('')}
+    <div class="bs bs-av"><b class="mono">${fmtN(avail,1)}%</b><span>พร้อมใช้งานตอนนี้</span></div>
+  </section>
+  <div class="toolbar board-tools"><input class="input search" id="bdQ" placeholder="ค้นหารหัสหรือชื่อเครื่อง" value="${esc(f.term)}"><label class="check small"><input type="checkbox" id="bdCrit" ${f.crit?'checked':''}> เฉพาะเครื่อง Critical</label>
+    <div class="legend"><span><i class="lg-ok"></i>ปกติ</span><span><i class="lg-pm"></i>PM</span><span><i class="lg-repair"></i>ซ่อม</span><span><i class="lg-down"></i>หยุด</span><span>◆ Critical</span><span><i class="lg-pmdue"></i>PM เลยกำหนด</span></div></div>
+  <div class="zones">${order.map(([loc, list]) => { const bad = list.filter(r=>r.state!=='ok').length;
+    return `<section class="zone ${list.some(r=>r.state==='down')?'z-down':bad?'z-warn':''}"><div class="zone-h"><b>${esc(loc)}</b><span class="small">${bad?`<span class="z-bad">${bad} ผิดปกติ</span> · `:''}${list.length} เครื่อง</span></div>
+      <div class="tiles-m">${list.map(r=>`<a class="mt st-${r.state} ${r.criticality==='critical'?'is-crit':''} ${r.pm_overdue?'pm-due':''}" href="#asset/${encodeURIComponent(r.asset_code)}" title="${esc(r.asset_code+' · '+r.name+' · '+SL[r.state]+(r.wo_code?' · '+r.wo_code+' '+r.wo_title:'')+(r.pm_overdue?' · PM เลยกำหนด':''))}">
+        <span class="mt-c mono">${r.criticality==='critical'?'◆ ':''}${esc(r.asset_code.replace(/^[A-Z]+-/,''))}</span><span class="mt-n">${esc(r.name)}</span>${r.state!=='ok'&&r.since?`<span class="mt-s">${timeAgo(r.since)}</span>`:''}</a>`).join('')}</div></section>`; }).join('') || '<section class="card"><div class="empty">ไม่พบเครื่องตามตัวกรอง</div></section>'}</div>`;
+  $('#bdRefresh').onclick = () => PAGES.board().catch(fail);
+  $('#bdTv').onclick = () => { const on = !document.body.classList.contains('tv'); document.body.classList.toggle('tv', on);
+    if (on) document.documentElement.requestFullscreen?.().catch(()=>{}); else if (document.fullscreenElement) document.exitFullscreen?.().catch(()=>{}); PAGES.board().catch(fail); };
+  $$('[data-bst]').forEach(b => b.onclick = () => { f.st = f.st===b.dataset.bst ? '' : b.dataset.bst; PAGES.board().catch(fail); });
+  $('#bdCrit').onchange = e => { f.crit = e.target.checked; PAGES.board().catch(fail); };
+  let tm; $('#bdQ').oninput = e => { clearTimeout(tm); tm = setTimeout(()=>{ f.term = e.target.value.trim(); PAGES.board().then(()=>{ const i=$('#bdQ'); i.focus(); i.setSelectionRange(i.value.length,i.value.length); }).catch(fail); }, 300); };
+  boardTimer = setInterval(() => { if (S.route==='board' && !$('#panel')) PAGES.board().catch(()=>{}); }, 60000);
+};
+
+/* ============ KANBAN (#kanban) ============ */
+const kbFilter = { team:'', prio:'', mine:false, term:'' };
+PAGES.kanban = async () => {
+  const f = kbFilter;
+  const sel = 'id,code,title,status,priority,source,created_at,due_date,sla_resolve_due,completed_at,equipment_down,assigned_to,team_id,pm_schedule_id,failure_cause,resolution,equipment:equipment_id(asset_code,name,criticality),assignee:profiles!work_orders_assigned_to_fkey(full_name)';
+  let qa = sb.from('work_orders').select(sel).in('status', OPEN);
+  let qd = sb.from('work_orders').select(sel).eq('status','done').order('completed_at',{ascending:false}).limit(30);
+  for (const x of ['a','d']) { let qq = x==='a'?qa:qd; if (f.team) qq=qq.eq('team_id',f.team); if (f.prio) qq=qq.eq('priority',f.prio); if (f.mine) qq=qq.eq('assigned_to',uid());
+    if (f.term) { const t=f.term.replace(/[,()%]/g,' '); qq=qq.or(`code.ilike.%${t}%,title.ilike.%${t}%`); } if (x==='a') qa=qq; else qd=qq; }
+  const [{data:act},{data:dn}] = await Promise.all([q(qa.limit(500)), q(qd)]);
+  const all = [...act, ...dn];
+  const PR = { urgent:0, high:1, medium:2, low:3 };
+  const cols = [['new','ใหม่ / รอมอบหมาย'],['assigned','มอบหมายแล้ว'],['in_progress','กำลังซ่อม'],['on_hold','พักงาน / รออะไหล่'],['done','ซ่อมเสร็จ (รอตรวจรับ)']];
+  const canMove = w => can('wo.assign') || (can('wo.edit') && w.assigned_to===uid());
+  const card = w => `<article class="kc ${w.equipment_down||w.priority==='urgent'?'hot':''}" draggable="${canMove(w)}" data-kc="${w.id}" tabindex="0">
+      <div class="kc-top"><span class="mono small">${esc(w.code)}</span>${prioTag(w.priority)}${w.source==='pm'?'<span class="pill plain">PM</span>':''}${critFlag(w.equipment?.criticality)}</div>
+      <b class="kc-t">${esc(w.title)}</b>
+      <div class="small muted">${w.equipment?`<span class="mono">${esc(w.equipment.asset_code)}</span> ${esc(w.equipment.name)}`:'ไม่ระบุอุปกรณ์'}</div>
+      <div class="kc-foot"><span class="kc-who">${w.assignee?`<span class="av">${esc(w.assignee.full_name.trim().slice(0,1))}</span>${esc(w.assignee.full_name)}`:'<span class="muted">ยังไม่มอบหมาย</span>'}</span>${w.status==='done'?`<span class="small muted">${timeAgo(w.completed_at)}</span>`:slaTag(w)}</div>
+    </article>`;
+  $('#view').innerHTML = `
+  <div class="page-head"><div><h1>บอร์ดใบงาน</h1><p>${act.length} งานค้าง · ลากการ์ดไปคอลัมน์ถัดไปเพื่อเปลี่ยนสถานะ · กดการ์ดเพื่อดูรายละเอียด</p></div><a class="btn primary" href="#new">+ สร้างใบงาน</a></div>
+  <div class="toolbar"><input class="input search" id="kbQ" placeholder="ค้นหาเลขที่หรือหัวเรื่อง" value="${esc(f.term)}"><select class="input" id="kbPrio"><option value="">ทุกความเร่งด่วน</option>${prioOptions(f.prio)}</select><select class="input" id="kbTeam">${teamOptions(f.team,'ทุกทีม')}</select><label class="check small"><input type="checkbox" id="kbMine" ${f.mine?'checked':''}> เฉพาะงานของฉัน</label></div>
+  <div class="kb-wrap"><div class="kb">${cols.map(([k,l])=>{ const list = all.filter(w=>w.status===k).sort((a,b)=> k==='done' ? 0 : (b.equipment_down-a.equipment_down) || (PR[a.priority]-PR[b.priority]) || ((a.sla_resolve_due||'9')>(b.sla_resolve_due||'9')?1:-1));
+    return `<section class="kcol kcol-${k}" data-col="${k}"><div class="kcol-h"><b>${l}</b><span class="mono">${list.length}</span></div><div class="kcol-b">${list.map(card).join('') || '<div class="kc-empty">ลากการ์ดมาวางที่นี่</div>'}</div></section>`; }).join('')}</div></div>`;
+  const again = () => PAGES.kanban().catch(fail);
+  let tm; $('#kbQ').oninput = e => { clearTimeout(tm); tm=setTimeout(()=>{ f.term=e.target.value.trim(); PAGES.kanban().then(()=>{ const i=$('#kbQ'); i.focus(); i.setSelectionRange(i.value.length,i.value.length); }).catch(fail); },300); };
+  $('#kbPrio').onchange = e => { f.prio=e.target.value; again(); };
+  $('#kbTeam').onchange = e => { f.team=e.target.value; again(); };
+  $('#kbMine').onchange = e => { f.mine=e.target.checked; again(); };
+  let dragId = null;
+  $$('[data-kc]').forEach(el => {
+    el.onclick = () => openWO(el.dataset.kc);
+    el.onkeydown = e => { if (e.key==='Enter') openWO(el.dataset.kc); };
+    el.ondragstart = e => { dragId = el.dataset.kc; e.dataTransfer.effectAllowed='move'; e.dataTransfer.setData('text/plain', dragId); el.classList.add('dragging'); };
+    el.ondragend = () => { el.classList.remove('dragging'); $$('.kcol').forEach(c=>c.classList.remove('over')); };
+  });
+  $$('[data-col]').forEach(col => {
+    col.ondragover = e => { e.preventDefault(); col.classList.add('over'); };
+    col.ondragleave = () => col.classList.remove('over');
+    col.ondrop = async e => { e.preventDefault(); col.classList.remove('over'); const id = e.dataTransfer.getData('text/plain') || dragId; const w = all.find(x=>x.id===id); const to = col.dataset.col;
+      if (!w || w.status===to) return;
+      if (!canMove(w)) return toast('คุณไม่มีสิทธิ์ย้ายงานนี้', true);
+      try {
+        if (to==='new') { if (!can('wo.assign')) return toast('เฉพาะหัวหน้างานย้ายกลับเป็นงานใหม่ได้', true); await q(sb.from('work_orders').update({status:'new', assigned_to:null}).eq('id',w.id)); }
+        else if ((to==='assigned' || to==='in_progress') && !w.assigned_to) { return can('wo.assign') ? quickAssign(w, to, again) : (await q(sb.rpc('claim_work_order',{p_id:w.id})), to==='in_progress' && await q(sb.from('work_orders').update({status:'in_progress'}).eq('id',w.id)), again()); }
+        else if (to==='done') { return w.source==='pm' && w.pm_schedule_id ? openWO(w.id) : quickFinish(w, again); }
+        else await q(sb.from('work_orders').update({status:to}).eq('id',w.id));
+        toast(`${w.code} → ${STATUS[to]}`); refreshOpenCount(); again();
+      } catch(err){ fail(err); }
+    };
+  });
+};
+
+/* ============ PWA ============ */
+let deferredInstall = null;
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredInstall = e; const b=$('#installBtn'); if (b) b.hidden=false; });
+if ('serviceWorker' in navigator && /^https?:/.test(location.protocol) && location.hostname !== 'localhost') {
+  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(()=>{}));
+}
+
 /* ============ CONFIG / BRAND / ALERTS ============ */
 const CFG_DEFAULT = { general:{name_th:'ระบบบำรุงรักษาอุปกรณ์',name_en:'Maintenance System',short_name:'MS',org_name:''},
-  targets:{sla_default_hours:72,availability_target:95,pm_ahead_days:7,pm_compliance_target:90,sla_target:90},
+  targets:{sla_default_hours:72,availability_target:95,pm_ahead_days:7,pm_compliance_target:90,sla_target:90,critical_sla_factor:0.5},
   notify:{urgent:true,overdue:true,equipment_down:true,low_stock:true,pm_due:true,unassigned:true,unassigned_minutes:30} };
 S.cfg = JSON.parse(JSON.stringify(CFG_DEFAULT));
 async function loadCfg(){
@@ -2037,6 +2674,7 @@ PAGES.settings = async () => {
         <label class="field"><span>ชื่อระบบ (ภาษาอังกฤษ)</span><input class="input" id="sg-en" name="name_en" value="${esc(g.name_en)}" required></label>
         <div class="grid2"><label class="field"><span>ชื่อย่อ / โลโก้ (ไม่เกิน 4 ตัว)</span><input class="input" id="sg-short" name="short_name" maxlength="4" value="${esc(g.short_name)}"></label>
           <label class="field"><span>ชื่อองค์กร (แสดงท้ายหน้า)</span><input class="input" id="sg-org" name="org_name" value="${esc(g.org_name)}" placeholder="เช่น บริษัท ตัวอย่าง จำกัด"></label></div>
+        <label class="field"><span>ลิงก์ระบบออนไลน์ (ใช้ใน QR ที่ติดเครื่อง)</span><input class="input mono" id="sg-url" name="public_url" value="${esc(g.public_url||'')}" placeholder="https://n-phutt.github.io/mm-system/"><small class="hint">เว้นว่างได้ ระบบจะใช้ลิงก์ของหน้าที่เปิดอยู่</small></label>
         <p class="small muted" style="margin:0">ค่าเหล่านี้แสดงที่แถบเมนู ชื่อแท็บเบราว์เซอร์ หน้าเข้าสู่ระบบ และท้ายหน้า</p>
         <div class="row"><button class="btn primary">บันทึกข้อมูลองค์กร</button></div>
       </form>
@@ -2049,6 +2687,8 @@ PAGES.settings = async () => {
           <label class="field"><span>เป้าหมาย PM Compliance (%)</span><input class="input" id="st-pmc" name="pm_compliance_target" type="number" min="0" max="100" step="0.1" value="${t.pm_compliance_target}"></label>
           <label class="field"><span>สร้างงาน PM ล่วงหน้า (วัน)</span><input class="input" id="st-pma" name="pm_ahead_days" type="number" min="0" max="90" value="${t.pm_ahead_days}"></label>
         </div>
+        <label class="field"><span>SLA เครื่อง Critical (เท่าของ SLA ปกติ)</span><input class="input" id="st-crit" name="critical_sla_factor" type="number" min="0.1" max="1" step="0.05" value="${t.critical_sla_factor??0.5}">
+          <small class="hint">เช่น 0.5 = ต้องรับงานและซ่อมเสร็จเร็วขึ้นครึ่งหนึ่ง ใบงานของเครื่อง Critical ที่แจ้งเป็นความเร่งด่วนต่ำ/ปานกลาง จะถูกยกเป็น "สูง" อัตโนมัติ และแจ้งเตือนภายนอกทันที</small></label>
         <button class="btn primary" style="width:100%">บันทึกการตั้งค่า</button>
       </form></div>`;
     $('#sgForm').onsubmit = async e => { e.preventDefault(); const f=formData(e.target); f.short_name=(f.short_name||'MS').toUpperCase();
