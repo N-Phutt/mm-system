@@ -358,6 +358,14 @@ tr.is-off td{opacity:.55}
 .seg-b.ok.on{background:var(--ok);color:#fff}
 .seg-b.bad.on{background:var(--bad);color:#fff}
 .seg-b.na.on{background:var(--ink-3);color:#fff}
+.pick{display:flex;flex-wrap:wrap;gap:8px}
+.pick-list{display:contents}
+.pick-it{position:relative;width:84px;height:84px}
+.pick-it img{width:100%;height:100%;object-fit:cover;border-radius:8px;border:1px solid var(--line);display:block}
+.pick-it button{position:absolute;top:-6px;right:-6px;width:24px;height:24px;border-radius:50%;border:0;background:var(--bad);color:#fff;font-size:16px;line-height:1;cursor:pointer;display:grid;place-items:center}
+.pick-add{width:84px;height:84px;border:1.5px dashed var(--line);border-radius:8px;display:grid;place-items:center;align-content:center;gap:4px;text-align:center;font-size:11px;color:var(--ink-2);cursor:pointer;background:var(--surface);padding:4px}
+.pick-add svg{width:24px;height:24px;color:var(--accent)}
+.pick-add[hidden]{display:none}
 .wo-links{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:13px}
 .wo-links a{cursor:pointer}
 
@@ -590,7 +598,7 @@ table.compact td{white-space:nowrap}
 /* ============ CONFIG ============ */
 const SB_URL = 'https://jtfeumjnqzozlmqlpcio.supabase.co';
 const SB_KEY = 'sb_publishable_m33nyCNfh5nKma5LxgV85g_ZLeQa052';
-const APP_VERSION = '1.1.0';
+const APP_VERSION = '1.1.1';
 const TZ = 'Asia/Bangkok';
 
 const sb = supabase.createClient(SB_URL, SB_KEY, { auth: { persistSession: true, autoRefreshToken: true } });
@@ -1410,6 +1418,7 @@ PAGES.new = async (preset) => {
       <label class="field"><span>หัวข้อ / อาการที่พบ <em class="req">*</em></span><input class="input" id="nf-title" name="title" required maxlength="200" placeholder="เช่น เครื่องอัดอากาศมีเสียงดังผิดปกติ"></label>
       <label class="field"><span>รายละเอียดเพิ่มเติม</span><textarea class="input" id="nf-desc" name="description" placeholder="อธิบายอาการ ตำแหน่ง เวลาที่เกิด หรือสิ่งที่ตรวจสอบเบื้องต้นแล้ว"></textarea></label>
       <label class="field"><span>อุปกรณ์ที่เกี่ยวข้อง</span>${equipCombo('nf-eq', preset)}<small class="hint">เลือกอุปกรณ์แล้วระบบจะเติมพื้นที่ให้อัตโนมัติ (เว้นว่างได้หากยังไม่ทราบ)</small></label>
+      ${photoPicker('nf-photos')}
       <label class="check"><input type="checkbox" id="nf-down" name="equipment_down"> อุปกรณ์หยุดทำงาน <span class="small muted">(นับเวลาหยุดเครื่องเพื่อคำนวณ Availability)</span></label>
     </section>
     <section class="card nf-side">
@@ -1424,6 +1433,7 @@ PAGES.new = async (preset) => {
   const paintSla = () => { $('#nf-sla').innerHTML = slaFor($('#nf-prio').value, nz($('#nf-team')?.value||'')); };
   paintSla(); $('#nf-prio').onchange = paintSla; if ($('#nf-team')) $('#nf-team').onchange = () => { paintSla(); if ($('#nf-tech')) { const cur=$('#nf-tech').value; $('#nf-tech').innerHTML = techOptions(cur, $('#nf-team').value); } };
   bindEquipCombo('nf-eq', e => { if (e.location_id) $('#nf-loc').value = e.location_id; });
+  const pick = bindPhotoPicker('nf-photos');
   $('#woForm').onsubmit = async e => {
     e.preventDefault(); const f=formData(e.target); const btn=$('#nf-btn'); btn.disabled=true;
     const row = { title:f.title, description:nz(f.description), equipment_id:nz($('#nf-eq-val').value), location_id:nz(f.location_id), priority:f.priority,
@@ -1432,7 +1442,8 @@ PAGES.new = async (preset) => {
     if (f.assigned_to || self) { row.assigned_to = f.assigned_to || uid(); row.status='assigned'; row.assigned_at=new Date().toISOString(); }
     try {
       const { data } = await q(sb.from('work_orders').insert(row).select('id,code').single());
-      toast('สร้างใบงาน '+data.code+' แล้ว'); refreshOpenCount();
+      if (pick.files.length) { btn.textContent = 'กำลังอัปโหลดรูป…'; try { await uploadReportPhotos(data.id, pick.files, S.profile.full_name); } catch(err){ toast('สร้างใบงานแล้ว แต่แนบรูปไม่สำเร็จ: '+thaiErr(err), true); } }
+      toast('สร้างใบงาน '+data.code+' แล้ว'+(pick.files.length?` · แนบรูป ${pick.files.length} รูป`:'')); refreshOpenCount();
       location.hash = row.source==='pm' ? '#wo' : '#repair'; setTimeout(()=>openWO(data.id), 300);
     } catch(err){ fail(err); btn.disabled=false; }
   };
@@ -1454,6 +1465,7 @@ async function renderPublicReport(code){
         <label class="field"><span>ชื่อผู้แจ้ง *</span><input class="input" id="pf-name" name="name" required></label>
         <label class="field"><span>เบอร์ติดต่อ / หน่วยงาน</span><input class="input" id="pf-contact" name="contact"></label>
       </div>
+      ${photoPicker('pf-photos')}
       <label class="check"><input type="checkbox" id="pf-down"> เครื่องหยุดทำงาน</label>
       <button class="btn primary" id="pf-btn" style="padding:11px">ส่งแจ้งซ่อม</button>
       <p id="pf-msg" class="small" style="margin:0"></p>
@@ -1461,15 +1473,23 @@ async function renderPublicReport(code){
     </form>
   </div>`;
   $('#pf-back').onclick = e => { e.preventDefault(); history.replaceState(null,'',location.pathname+location.search); boot(); };
+  const pick = bindPhotoPicker('pf-photos');
   $('#pubForm').onsubmit = async e => {
     e.preventDefault(); const f=formData(e.target); $('#pf-btn').disabled=true;
     let eq = null;
     if (f.asset) { const r = await sb.from('equipment').select('id,location_id').eq('asset_code', f.asset).maybeSingle(); eq = r.data; }
     const desc = [f.asset && !eq ? 'รหัสอุปกรณ์ที่แจ้ง: '+f.asset : null, f.desc].filter(Boolean).join('\n');
-    const { error } = await sb.from('work_orders').insert({ title:f.title, description:nz(desc), equipment_id:eq?.id||null, location_id:eq?.location_id||null,
+    const id = crypto.randomUUID ? crypto.randomUUID() : ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g,c=>(c^crypto.getRandomValues(new Uint8Array(1))[0]&15>>c/4).toString(16));
+    const msg = (t, ok) => { $('#pf-msg').style.color = ok ? 'var(--ok)' : 'var(--bad)'; $('#pf-msg').textContent = t; };
+    const { error } = await sb.from('work_orders').insert({ id, title:f.title, description:nz(desc), equipment_id:eq?.id||null, location_id:eq?.location_id||null,
       reporter_name:f.name, reporter_contact:nz(f.contact), source:'qr', status:'new', equipment_down:$('#pf-down').checked });
-    if (error) { $('#pf-msg').style.color='var(--bad)'; $('#pf-msg').textContent=thaiErr(error); $('#pf-btn').disabled=false; return; }
-    e.target.reset(); $('#pf-btn').disabled=false; $('#pf-msg').style.color='var(--ok)'; $('#pf-msg').textContent='ส่งแจ้งซ่อมเรียบร้อย ทีมช่างได้รับเรื่องแล้ว';
+    if (error) { msg(thaiErr(error)); $('#pf-btn').disabled=false; return; }
+    let photoErr = '';
+    if (pick.files.length) { msg(`กำลังอัปโหลดรูป ${pick.files.length} รูป…`, true);
+      try { await uploadReportPhotos(id, pick.files, f.name); } catch(err){ photoErr = ' แต่แนบรูปไม่สำเร็จ ('+thaiErr(err)+')'; } }
+    const nPh = pick.files.length;
+    e.target.reset(); pick.clear(); $('#pf-btn').disabled=false;
+    msg('ส่งแจ้งซ่อมเรียบร้อย ทีมช่างได้รับเรื่องแล้ว' + (nPh && !photoErr ? ` · แนบรูป ${nPh} รูป` : '') + photoErr, !photoErr);
   };
 }
 
@@ -2242,6 +2262,35 @@ async function uploadWoPhotos(woId, kind, files){
   return n;
 }
 const photoInput = (id, kind, label) => `<label class="btn photo-btn" for="${id}">${svgI('camera')} ${label}<input type="file" id="${id}" data-kind="${kind}" accept="image/*" capture="environment" multiple hidden></label>`;
+/* photo picker for new reports (before the work order exists) */
+const PICK_MAX = 5;
+const photoPicker = id => `<div class="field"><span>แนบรูปภาพ <small class="muted">(ไม่บังคับ · สูงสุด ${PICK_MAX} รูป)</small></span>
+  <div class="pick" id="${id}"><div class="pick-list"></div>
+    <label class="pick-add">${svgI('camera')}<span>ถ่ายรูป / เลือกรูป</span><input type="file" accept="image/*" multiple hidden></label></div></div>`;
+function bindPhotoPicker(id){
+  const box = $('#'+id), list = $('.pick-list', box), add = $('.pick-add', box), inp = $('input', box); let files = [];
+  const paint = () => { list.querySelectorAll('img').forEach(i=>URL.revokeObjectURL(i.src));
+    list.innerHTML = files.map((f,i)=>`<div class="pick-it"><img src="${URL.createObjectURL(f)}" alt="รูปที่ ${i+1}"><button type="button" data-rm="${i}" aria-label="ลบรูป">×</button></div>`).join('');
+    add.hidden = files.length >= PICK_MAX;
+    $$('[data-rm]', list).forEach(b=>b.onclick=()=>{ files.splice(Number(b.dataset.rm),1); paint(); }); };
+  inp.onchange = () => { const nw=[...inp.files].filter(f=>/^image\//.test(f.type)); if (files.length+nw.length > PICK_MAX) toast(`แนบได้สูงสุด ${PICK_MAX} รูป`, true);
+    files = files.concat(nw).slice(0, PICK_MAX); inp.value=''; paint(); };
+  return { get files(){ return files; }, clear(){ files=[]; paint(); } };
+}
+async function uploadReportPhotos(woId, files, name){
+  let n = 0;
+  for (const f of files) {
+    const blob = await compressImage(f);
+    const path = `${woId}/before-${Date.now()}-${Math.random().toString(36).slice(2,7)}.jpg`;
+    const up = await sb.storage.from(PHOTO_BUCKET).upload(path, blob, { contentType:'image/jpeg', upsert:false });
+    if (up.error) throw up.error;
+    const row = { work_order_id:woId, storage_path:path, file_name:f.name||'photo.jpg', content_type:'image/jpeg', size_bytes:blob.size, uploader_name:name, kind:'before' };
+    if (S.profile) row.uploaded_by = uid();
+    const { error } = await sb.from('work_order_attachments').insert(row); if (error) throw error;
+    n++;
+  }
+  return n;
+}
 async function paintPhotos(w, box, canAdd){
   const { data } = await sb.from('work_order_attachments').select('*').eq('work_order_id', w.id).order('created_at');
   const list = data || [];
