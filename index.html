@@ -519,6 +519,14 @@ body.tv .mt{font-size:12px;min-height:58px}
 .vq-facts b{color:var(--ink);font-weight:500}
 @media (max-width:860px){.vq-grid{grid-template-columns:1fr}}
 
+/* ---------- parts ---------- */
+.qchips{display:flex;flex-wrap:wrap;gap:6px}
+th.sortable{cursor:pointer;user-select:none}
+th.sortable:hover{color:var(--ink)}
+.pt-spec{max-width:420px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.parts-tbl td{vertical-align:top}
+.panel .kpis.k4{grid-template-columns:repeat(2,minmax(0,1fr))}
+
 /* ---------- overview dashboard ---------- */
 .gsearch{display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:99px;padding:0 12px;background:var(--surface-2);width:min(320px,40vw)}
 .gsearch svg{width:15px;height:15px;color:var(--ink-3)}
@@ -621,7 +629,7 @@ table.compact td{white-space:nowrap}
 /* ============ CONFIG ============ */
 const SB_URL = 'https://jtfeumjnqzozlmqlpcio.supabase.co';
 const SB_KEY = 'sb_publishable_m33nyCNfh5nKma5LxgV85g_ZLeQa052';
-const APP_VERSION = '1.2.1';
+const APP_VERSION = '1.3.0';
 const TZ = 'Asia/Bangkok';
 
 const sb = supabase.createClient(SB_URL, SB_KEY, { auth: { persistSession: true, autoRefreshToken: true } });
@@ -817,7 +825,6 @@ async function loadRefs(){
   S.teams = t.data||[]; S.people = p.data||[]; S.locations = l.data||[];
   S.sla = (await sb.from('sla_policies').select('*')).data || [];
   S.eqTypes = (await sb.from('equipment_types').select('*').order('sort_order').order('name')).data || [];
-  if (can('part.view') || can('part.manage') || can('wo.edit')) { const r = await sb.from('spare_parts').select('*').order('part_code'); S.parts = r.data||[]; }
 }
 
 /* ============ SHELL & ROUTER ============ */
@@ -1389,7 +1396,7 @@ function renderWO(w, ev, parts, checklist){
     <div class="row"><button class="btn ok" data-act="done">ซ่อมเสร็จ</button>${w.equipment_down?'<span class="small muted">ระบบจะบันทึกเวลาที่เครื่องกลับมาใช้งานให้อัตโนมัติ</span>':''}</div></section>`:''}
   ${seesWork() ? `<section class="card"><div class="card-head"><h3>อะไหล่ที่ใช้</h3>${partCost?`<span class="mono small">รวม ฿${fmtN(partCost,2)}</span>`:''}</div>
     ${parts.length?`<div class="tbl-wrap"><table><tbody>${parts.map(p=>`<tr><td><span class="mono">${esc(p.part?.part_code)}</span> ${esc(p.part?.name)}</td><td class="num mono">${fmtN(p.quantity_used,2)} ${esc(p.part?.unit)}</td><td class="small muted">${fmtDT(p.used_at)}</td></tr>`).join('')}</tbody></table></div>`:'<p class="muted small" style="margin:0">ยังไม่มีการเบิกอะไหล่</p>'}
-    ${canWork && ['assigned','in_progress','on_hold'].includes(w.status) ? `<div class="row"><select class="input" id="ptSel" style="flex:1;min-width:200px"><option value="">– เลือกอะไหล่ –</option>${S.parts.map(p=>`<option value="${p.id}">${esc(p.part_code)} · ${esc(p.name)} (คงเหลือ ${fmtN(p.quantity_on_hand,2)} ${esc(p.unit)})</option>`).join('')}</select><input class="input" id="ptQty" type="number" min="0.01" step="any" value="1" style="width:90px"><button class="btn" data-act="part">เบิกใช้</button></div>`:''}
+    ${canWork && ['assigned','in_progress','on_hold'].includes(w.status) ? `<div class="row"><div class="combo" style="flex:1;min-width:220px"><input class="input" id="ptFind" placeholder="พิมพ์รหัส ชื่อ หรือสเปกอะไหล่เพื่อค้นหา" autocomplete="off"><div class="combo-list" id="ptList" hidden></div></div><input class="input" id="ptQty" type="number" min="0.01" step="any" value="1" style="width:90px"><button class="btn" data-act="part">เบิกใช้</button></div>`:''}
   </section>`:''}
   <section class="card"><h3>ประวัติและความคิดเห็น</h3>
     <ul class="timeline">${ev.map(e=>`<li><div><div>${evText(e)}</div><div class="t">${esc(e.actor?.full_name||'ระบบ / ผู้แจ้งภายนอก')} · ${fmtDT(e.created_at)}</div></div></li>`).join('')}</ul>
@@ -1418,9 +1425,10 @@ function renderWO(w, ev, parts, checklist){
     upd(patch,'บันทึกการมอบหมายแล้ว'); });
   act('done', ()=>{ const r=$('#rsText').value.trim(); if (!r) { toast('กรุณาบันทึกวิธีแก้ไขก่อนปิดงานซ่อม', true); $('#rsText').focus(); return; }
     upd({status:'done', resolution:r, failure_cause:nz($('#rsCause').value.trim())}, 'บันทึกซ่อมเสร็จแล้ว'); });
-  act('part', async()=>{ const pid=$('#ptSel').value, qty=Number($('#ptQty').value); if (!pid||!(qty>0)) return toast('เลือกอะไหล่และระบุจำนวน', true);
-    const p=S.parts.find(x=>x.id===pid); if (p && qty > Number(p.quantity_on_hand)) return toast(`อะไหล่ไม่พอ คงเหลือ ${fmtN(p.quantity_on_hand,2)} ${p.unit}`, true);
-    try { await q(sb.from('work_order_parts').insert({work_order_id:w.id,part_id:pid,quantity_used:qty,used_by:uid()})); p.quantity_on_hand -= qty; await reload('เบิกอะไหล่แล้ว ตัดสต็อกเรียบร้อย'); } catch(e){ fail(e); } });
+  let pickedPart = null; if ($('#ptFind')) bindPartCombo($('#ptFind'), $('#ptList'), p => pickedPart = p);
+  act('part', async()=>{ const p=pickedPart, qty=Number($('#ptQty').value); if (!p||!(qty>0)) return toast('ค้นหาและเลือกอะไหล่จากรายการ แล้วระบุจำนวน', true);
+    if (qty > Number(p.quantity_on_hand)) return toast(`อะไหล่ไม่พอ คงเหลือ ${fmtN(p.quantity_on_hand,2)} ${p.unit}`, true);
+    try { await q(sb.from('work_order_parts').insert({work_order_id:w.id,part_id:p.id,quantity_used:qty,used_by:uid()})); await reload('เบิกอะไหล่แล้ว ตัดสต็อกเรียบร้อย'); } catch(e){ fail(e); } });
   act('comment', async()=>{ const c=$('#cmText').value.trim(); if (!c) return; try { await q(sb.from('work_order_events').insert({work_order_id:w.id,actor_id:uid(),event_type:'comment',comment:c})); await openWO(w.id); } catch(e){ fail(e); } });
   $('#cmText').onkeydown = e => { if (e.key==='Enter') $('[data-act="comment"]',body).click(); };
   const at=$('#asTeam'); if (at) at.onchange = ()=>{ const cur=$('#asTech').value; $('#asTech').innerHTML = techOptions(cur, at.value); };
@@ -1927,57 +1935,117 @@ function eqForm(e, after){
 }
 
 /* ============ PARTS ============ */
-let partsLow = false;
+const partFilter = { term:'', cat:'', stock:'', page:0, sort:'part_code' };
+const PART_SEL = 'id,part_code,name,unit,quantity_on_hand,reorder_point,unit_cost,storage_location,supplier,category,model,spec,item_code,safety_stock,min_qty,max_qty,remark,is_low';
+const partSub = p => [p.model, p.spec].filter(Boolean).join(' · ');
+const partSearch = (qq, term) => { const t = term.replace(/[,()%]/g,' ').trim(); return t ? qq.or(`part_code.ilike.%${t}%,name.ilike.%${t}%,spec.ilike.%${t}%,model.ilike.%${t}%,item_code.ilike.%${t}%,supplier.ilike.%${t}%`) : qq; };
 PAGES.parts = async () => {
-  const { data } = await q(sb.from('spare_parts').select('*').order('part_code')); S.parts = data;
-  const rows = partsLow ? data.filter(p=>Number(p.quantity_on_hand)<=Number(p.reorder_point)) : data;
-  const low = data.filter(p=>Number(p.quantity_on_hand)<=Number(p.reorder_point)).length;
-  const value = data.reduce((s,p)=>s+Number(p.quantity_on_hand)*(Number(p.unit_cost)||0),0);
+  const f = partFilter, size = 50;
+  let qq = partSearch(sb.from('spare_parts').select(PART_SEL, { count:'exact' }), f.term);
+  if (f.cat) qq = f.cat === '_none' ? qq.is('category', null) : qq.eq('category', f.cat);
+  if (f.stock === 'low') qq = qq.eq('is_low', true);
+  if (f.stock === 'out') qq = qq.lte('quantity_on_hand', 0);
+  if (f.stock === 'ok') qq = qq.eq('is_low', false);
+  const asc = !f.sort.startsWith('-'), col = f.sort.replace(/^-/, '');
+  const [{ data, count }, { data:sum }] = await Promise.all([
+    q(qq.order(col, { ascending:asc, nullsFirst:false }).order('part_code').range(f.page*size, f.page*size+size-1)),
+    q(sb.rpc('get_parts_summary'))
+  ]);
+  const cats = Object.entries(sum?.cats || {}).sort((a,b)=>b[1]-a[1]);
+  const th = (c, l, cls='') => `<th class="${cls} sortable" data-sort="${c}">${l}${col===c ? (asc?' ▲':' ▼') : ''}</th>`;
   $('#view').innerHTML = `
-  <div class="page-head"><div><h1>อะไหล่คงคลัง</h1><p>${data.length} รายการ · มูลค่าคงคลัง ฿${fmtN(value,2)}</p></div>
-    <div class="row">${can('part.view')||can('part.manage')?'<button class="btn" id="ptMv">ประวัติการเคลื่อนไหว</button>':''}${can('part.manage')?'<button class="btn primary" id="ptNew">+ เพิ่มอะไหล่</button>':''}</div></div>
-  <div class="toolbar"><label class="check"><input type="checkbox" id="ptLow" ${partsLow?'checked':''}> แสดงเฉพาะที่ต่ำกว่าจุดสั่งซื้อ (${low})</label></div>
-  ${rows.length?`<div class="tbl-wrap"><table><thead><tr><th>รหัส</th><th>ชื่ออะไหล่</th><th class="num">คงเหลือ</th><th class="num">จุดสั่งซื้อ</th><th>ระดับสต็อก</th><th class="num">ราคา/หน่วย</th><th>ที่เก็บ</th><th>ผู้จำหน่าย</th></tr></thead><tbody>
-  ${rows.map(p=>{ const q_=Number(p.quantity_on_hand), rp=Number(p.reorder_point); const isLow=q_<=rp; const pct=Math.min(100, rp>0? q_/(rp*2)*100 : 100);
-    return `<tr class="${can('part.manage')?'click':''}" data-part="${p.id}"><td class="mono">${esc(p.part_code)}</td><td>${esc(p.name)}</td>
-    <td class="num mono" style="${isLow?'color:var(--bad);font-weight:600':''}">${fmtN(q_,2)} <span class="muted small">${esc(p.unit)}</span></td><td class="num mono">${fmtN(rp,2)}</td>
-    <td><div class="bar" style="width:90px"><i class="${isLow?'bad':q_<=rp*1.5?'warn':'ok'}" style="width:${pct}%"></i></div></td>
-    <td class="num mono">${p.unit_cost!=null?'฿'+fmtN(p.unit_cost,2):'–'}</td><td class="small">${esc(p.storage_location||'–')}</td><td class="small">${esc(p.supplier||'–')}</td></tr>`;}).join('')}
-  </tbody></table></div>`:'<section class="card"><div class="empty">ไม่มีรายการอะไหล่</div></section>'}`;
-  $('#ptLow').onchange=e=>{ partsLow=e.target.checked; PAGES.parts().catch(fail); };
-  if ($('#ptNew')) $('#ptNew').onclick=()=>partForm();
-  if ($('#ptMv')) $('#ptMv').onclick=partMoves;
-  if (can('part.manage')) $$('[data-part]').forEach(tr=>tr.onclick=()=>partForm(data.find(p=>p.id===tr.dataset.part)));
+  <div class="page-head"><div><h1>อะไหล่คงคลัง</h1><p>${fmtN(sum?.items||0,0)} รายการ</p></div>
+    <div class="row">${can('part.view')||can('part.manage')?'<button class="btn" id="ptMv">ประวัติการเคลื่อนไหว</button>':''}${can('part.manage')?`<button class="btn" id="ptImp">${svgI('download')} นำเข้า / อัปเดตยอดจาก Excel</button><button class="btn primary" id="ptNew">+ เพิ่มอะไหล่</button>`:''}</div></div>
+  <section class="kpis k4">
+    ${kpi('parts','รายการอะไหล่', fmtN(sum?.items||0,0), 'รายการ', `${cats.length} หมวด`, 'accent')}
+    ${kpi('reports','มูลค่าคงคลัง', '฿'+fmtN((sum?.value||0)/1e6,2)+'M', '', '฿'+fmtN(sum?.value||0,0), 'info')}
+    ${kpi('bell','ถึงจุดสั่งซื้อ', fmtN(sum?.low||0,0), 'รายการ', 'คงเหลือ ≤ Reorder point', sum?.low?'warn':'ok')}
+    ${kpi('pulse','หมดสต็อก', fmtN(sum?.out||0,0), 'รายการ', sum?.negative?`ยอดติดลบ ${sum.negative} รายการ`:'คงเหลือ 0', sum?.out?'bad':'ok')}
+  </section>
+  <div class="qchips">${[['','ทั้งหมด'],...cats.map(([c,n])=>[c,`${c==='ไม่ระบุหมวด'?c:c.replace(/ spare part$/i,'')} (${n})`])].map(([k,l])=>`<button class="qchip ${f.cat===(k==='ไม่ระบุหมวด'?'_none':k)?'on':''}" data-pcat="${esc(k==='ไม่ระบุหมวด'?'_none':k)}">${esc(l)}</button>`).join('')}</div>
+  <div class="toolbar">
+    <input class="input search" id="ptQ" placeholder="ค้นหารหัส ชื่อ รุ่น สเปก Item code หรือผู้จำหน่าย" value="${esc(f.term)}">
+    <select class="input" id="ptStock" style="max-width:220px"><option value="">ทุกสถานะสต็อก</option><option value="low" ${f.stock==='low'?'selected':''}>ถึงจุดสั่งซื้อ (${sum?.low||0})</option><option value="out" ${f.stock==='out'?'selected':''}>หมดสต็อก (${sum?.out||0})</option><option value="ok" ${f.stock==='ok'?'selected':''}>สต็อกปกติ</option></select>
+  </div>
+  ${data.length?`<div class="tbl-wrap"><table class="parts-tbl"><thead><tr>${th('part_code','รหัส')}${th('name','ชื่ออะไหล่ / สเปก')}${th('quantity_on_hand','คงเหลือ','num')}<th class="num">Min / Max / RP</th><th>ระดับ</th>${th('unit_cost','ราคา/หน่วย','num')}${th('storage_location','ที่เก็บ')}<th>ผู้จำหน่าย</th></tr></thead><tbody>
+  ${data.map(p=>{ const q_=Number(p.quantity_on_hand), rp=Number(p.reorder_point), mx=Number(p.max_qty)||Math.max(rp*2,1); const pct=Math.max(0,Math.min(100, q_/mx*100));
+    return `<tr class="click" data-part="${p.id}" tabindex="0"><td class="mono">${esc(p.part_code)}${p.item_code?`<div class="small muted">${esc(p.item_code)}</div>`:''}</td>
+    <td style="min-width:240px"><b style="font-weight:500">${esc(p.name)}</b>${partSub(p)?`<div class="small muted pt-spec">${esc(partSub(p))}</div>`:''}</td>
+    <td class="num mono" style="${q_<=0?'color:var(--bad);font-weight:700':p.is_low?'color:var(--warn);font-weight:600':''}">${fmtN(q_,2)} <span class="muted small">${esc(p.unit)}</span></td>
+    <td class="num mono small">${p.min_qty!=null?fmtN(p.min_qty,0):'–'} / ${p.max_qty!=null?fmtN(p.max_qty,0):'–'} / <b>${fmtN(rp,0)}</b></td>
+    <td><div class="bar" style="width:80px"><i class="${q_<=0?'bad':p.is_low?'warn':'ok'}" style="width:${q_<=0?100:pct}%"></i></div></td>
+    <td class="num mono">${p.unit_cost!=null?'฿'+fmtN(p.unit_cost,2):'–'}</td><td class="small mono">${esc(p.storage_location||'–')}</td><td class="small">${esc(p.supplier||'–')}</td></tr>`;}).join('')}
+  </tbody></table></div>`:'<section class="card"><div class="empty">ไม่พบอะไหล่ตามเงื่อนไข</div></section>'}
+  ${pager(f.page,size,count)}`;
+  const again = () => PAGES.parts().catch(fail);
+  let tm; $('#ptQ').oninput = e => { clearTimeout(tm); tm = setTimeout(()=>{ f.term=e.target.value.trim(); f.page=0; PAGES.parts().then(()=>{ const i=$('#ptQ'); i.focus(); i.setSelectionRange(i.value.length,i.value.length); }).catch(fail); }, 300); };
+  $('#ptStock').onchange = e => { f.stock=e.target.value; f.page=0; again(); };
+  $$('[data-pcat]').forEach(b => b.onclick = () => { f.cat=b.dataset.pcat; f.page=0; again(); });
+  $$('[data-sort]').forEach(h => h.onclick = () => { const c=h.dataset.sort; f.sort = f.sort===c ? '-'+c : c; f.page=0; again(); });
+  bindPager(p => { f.page=p; again(); });
+  if ($('#ptNew')) $('#ptNew').onclick = () => partForm();
+  if ($('#ptImp')) $('#ptImp').onclick = partImport;
+  if ($('#ptMv')) $('#ptMv').onclick = () => partMoves();
+  $$('[data-part]').forEach(tr => { const open = () => partForm(data.find(p=>p.id===tr.dataset.part)); tr.onclick = open; tr.onkeydown = e => { if (e.key==='Enter') open(); }; });
 };
 function partForm(p){
-  openPanel(p?'อะไหล่':'เพิ่มอะไหล่', p?`<span class="mono">${esc(p.part_code)}</span> · คงเหลือ ${fmtN(p.quantity_on_hand,2)} ${esc(p.unit)}`:'', `
-  ${p?`<form class="card" id="rcvForm"><h3>รับเข้า / ปรับยอดสต็อก</h3>
+  const man = can('part.manage'), dis = man ? '' : 'disabled';
+  const cats = ['Consumable spare part','Electric and Electronic spare part','Mechanical spare part','Tooling spare part','Machine part'];
+  openPanel(p?esc(p.name):'เพิ่มอะไหล่', p?`<span class="mono">${esc(p.part_code)}</span> · คงเหลือ <b>${fmtN(p.quantity_on_hand,2)} ${esc(p.unit)}</b>`:'', `
+  ${p && man?`<form class="card" id="rcvForm"><h3>รับเข้า / ปรับยอดสต็อก</h3>
     <div class="grid2"><label class="field"><span>จำนวน (ติดลบ = ปรับลด)</span><input class="input" id="rc-qty" type="number" step="any" required></label>
     <label class="field"><span>หมายเหตุ / เลขที่ใบรับของ</span><input class="input" id="rc-note"></label></div>
-    <div class="row"><button class="btn primary">บันทึกรับเข้า</button></div></form>`:''}
-  <form class="card" id="ptForm"><h3>${p?'แก้ไขข้อมูล':'ข้อมูลอะไหล่'}</h3>
+    <div class="row"><button class="btn primary">บันทึก</button></div></form>`:''}
+  ${p?`<section class="card" id="ptHist"><h3>การเคลื่อนไหวล่าสุด</h3><div class="loading">กำลังโหลด…</div></section>`:''}
+  <form class="card" id="ptForm"><h3>${p?'ข้อมูลอะไหล่':'ข้อมูลอะไหล่'}</h3>
     <div class="grid2">
-      <label class="field"><span>รหัสอะไหล่ *</span><input class="input mono" id="pf2-code" name="part_code" required value="${esc(p?.part_code||'')}"></label>
-      <label class="field"><span>ชื่ออะไหล่ *</span><input class="input" id="pf2-name" name="name" required value="${esc(p?.name||'')}"></label>
-      <label class="field"><span>หน่วยนับ</span><input class="input" id="pf2-unit" name="unit" value="${esc(p?.unit||'ชิ้น')}"></label>
-      <label class="field"><span>จุดสั่งซื้อ</span><input class="input" id="pf2-rp" name="reorder_point" type="number" step="any" min="0" value="${p?.reorder_point??0}"></label>
-      <label class="field"><span>ราคาต่อหน่วย (บาท)</span><input class="input" id="pf2-cost" name="unit_cost" type="number" step="any" min="0" value="${p?.unit_cost??''}"></label>
-      ${p?'':'<label class="field"><span>ยอดยกมา</span><input class="input" id="pf2-qty" name="quantity_on_hand" type="number" step="any" min="0" value="0"></label>'}
-      <label class="field"><span>ที่เก็บ</span><input class="input" id="pf2-loc" name="storage_location" value="${esc(p?.storage_location||'')}"></label>
-      <label class="field"><span>ผู้จำหน่าย</span><input class="input" id="pf2-sup" name="supplier" value="${esc(p?.supplier||'')}"></label>
+      <label class="field"><span>Part No *</span><input class="input mono" id="pf2-code" name="part_code" required value="${esc(p?.part_code||'')}" ${dis}></label>
+      <label class="field"><span>Item code (ERP)</span><input class="input mono" id="pf2-ic" name="item_code" value="${esc(p?.item_code||'')}" ${dis}></label>
+      <label class="field"><span>ชื่ออะไหล่ *</span><input class="input" id="pf2-name" name="name" required value="${esc(p?.name||'')}" ${dis}></label>
+      <label class="field"><span>หมวด</span><input class="input" id="pf2-cat" name="category" list="pf2-cats" value="${esc(p?.category||'')}" ${dis}><datalist id="pf2-cats">${cats.map(c=>`<option value="${c}">`).join('')}</datalist></label>
+      <label class="field"><span>ยี่ห้อ / รุ่น</span><input class="input" id="pf2-model" name="model" value="${esc(p?.model||'')}" ${dis}></label>
+      <label class="field"><span>หน่วยนับ</span><input class="input" id="pf2-unit" name="unit" value="${esc(p?.unit||'Pcs.')}" ${dis}></label>
     </div>
-    <div class="row"><button class="btn primary">บันทึก</button></div></form>`);
-  $('#ptForm').onsubmit = async e => {
+    <label class="field"><span>สเปก</span><textarea class="input" id="pf2-spec" name="spec" style="min-height:60px" ${dis}>${esc(p?.spec||'')}</textarea></label>
+    <div class="grid2" style="grid-template-columns:repeat(4,minmax(0,1fr))">
+      <label class="field"><span>Safety</span><input class="input" id="pf2-ss" name="safety_stock" type="number" step="any" value="${p?.safety_stock??''}" ${dis}></label>
+      <label class="field"><span>Min</span><input class="input" id="pf2-min" name="min_qty" type="number" step="any" value="${p?.min_qty??''}" ${dis}></label>
+      <label class="field"><span>Max</span><input class="input" id="pf2-max" name="max_qty" type="number" step="any" value="${p?.max_qty??''}" ${dis}></label>
+      <label class="field"><span>Reorder point</span><input class="input" id="pf2-rp" name="reorder_point" type="number" step="any" min="0" value="${p?.reorder_point??0}" ${dis}></label>
+    </div>
+    <div class="grid2">
+      <label class="field"><span>ราคาต่อหน่วย (บาท)</span><input class="input" id="pf2-cost" name="unit_cost" type="number" step="any" min="0" value="${p?.unit_cost??''}" ${dis}></label>
+      ${p?'':'<label class="field"><span>ยอดยกมา</span><input class="input" id="pf2-qty" name="quantity_on_hand" type="number" step="any" value="0"></label>'}
+      <label class="field"><span>ที่เก็บ (Location)</span><input class="input mono" id="pf2-loc" name="storage_location" value="${esc(p?.storage_location||'')}" ${dis}></label>
+      <label class="field"><span>ผู้จำหน่าย</span><input class="input" id="pf2-sup" name="supplier" value="${esc(p?.supplier||'')}" ${dis}></label>
+    </div>
+    <label class="field"><span>หมายเหตุ</span><input class="input" id="pf2-rm" name="remark" value="${esc(p?.remark||'')}" ${dis}></label>
+    ${man?'<div class="row"><button class="btn primary">บันทึก</button></div>':''}</form>`);
+  const numOrNull = v => v===''||v==null ? null : Number(v);
+  if (man) $('#ptForm').onsubmit = async e => {
     e.preventDefault(); const f=formData(e.target);
-    const row = { part_code:f.part_code, name:f.name, unit:f.unit||'ชิ้น', reorder_point:Number(f.reorder_point)||0, unit_cost:f.unit_cost===''?null:Number(f.unit_cost), storage_location:nz(f.storage_location), supplier:nz(f.supplier) };
+    const row = { part_code:f.part_code.trim(), name:f.name.trim(), unit:f.unit||'Pcs.', reorder_point:Number(f.reorder_point)||0, unit_cost:numOrNull(f.unit_cost),
+      storage_location:nz(f.storage_location), supplier:nz(f.supplier), category:nz(f.category), model:nz(f.model), spec:nz(f.spec), item_code:nz(f.item_code),
+      safety_stock:numOrNull(f.safety_stock), min_qty:numOrNull(f.min_qty), max_qty:numOrNull(f.max_qty), remark:nz(f.remark) };
     try { if (p) await q(sb.from('spare_parts').update(row).eq('id',p.id));
       else { const { data } = await q(sb.from('spare_parts').insert({...row, quantity_on_hand:0}).select('id').single()); const q0=Number(f.quantity_on_hand)||0; if (q0) await q(sb.rpc('receive_part',{p_part:data.id,p_qty:q0,p_note:'ยอดยกมา'})); }
       closePanel(); toast('บันทึกอะไหล่แล้ว'); PAGES.parts().catch(fail); } catch(err){ fail(err); }
   };
-  if (p) $('#rcvForm').onsubmit = async e => {
+  if (p && man) $('#rcvForm').onsubmit = async e => {
     e.preventDefault(); const qty=Number($('#rc-qty').value); if (!qty) return toast('ระบุจำนวนที่ไม่เป็นศูนย์', true);
     try { await q(sb.rpc('receive_part',{p_part:p.id,p_qty:qty,p_note:nz($('#rc-note').value.trim())})); closePanel(); toast(qty>0?'รับเข้าสต็อกแล้ว':'ปรับยอดแล้ว'); PAGES.parts().catch(fail); } catch(err){ fail(err); }
   };
+  if (p) (async () => {
+    const box = $('#ptHist'); if (!box) return;
+    const [{data:mv},{data:used}] = await Promise.all([
+      sb.from('stock_movements').select('qty,kind,note,created_at,actor:actor_id(full_name)').eq('part_id',p.id).order('created_at',{ascending:false}).limit(10),
+      sb.from('work_order_parts').select('quantity_used,used_at,wo:work_order_id(id,code,title,equipment:equipment_id(asset_code))').eq('part_id',p.id).order('used_at',{ascending:false}).limit(10)
+    ]);
+    const K={receive:'รับเข้า',adjust:'ปรับยอด',issue:'เบิกใช้'};
+    box.innerHTML = `<h3>การเคลื่อนไหวล่าสุด</h3>${(mv||[]).length?`<div class="tbl-wrap"><table class="compact"><tbody>${mv.map(m=>`<tr><td class="small" style="white-space:nowrap">${fmtDT(m.created_at)}</td><td class="small">${K[m.kind]||m.kind}</td><td class="num mono" style="color:${m.qty>0?'var(--ok)':'var(--bad)'}">${m.qty>0?'+':''}${fmtN(m.qty,2)}</td><td class="small muted">${esc(m.note||'')} ${esc(m.actor?.full_name||'')}</td></tr>`).join('')}</tbody></table></div>`:'<p class="small muted" style="margin:0">ยังไม่มีการเคลื่อนไหว</p>'}
+      ${(used||[]).length?`<h3 style="margin-top:12px">เบิกใช้ในใบงาน</h3><ul class="pm-list">${used.map(u=>`<li><a data-open="${u.wo?.id}" href="javascript:void 0"><span class="mono">${esc(u.wo?.code||'')}</span> ${esc(u.wo?.title||'')}<span class="small muted">${esc(u.wo?.equipment?.asset_code||'')} · ${fmtDT(u.used_at)}</span></a><span class="mono small">×${fmtN(u.quantity_used,2)}</span></li>`).join('')}</ul>`:''}`;
+    $$('[data-open]', box).forEach(a => a.onclick = () => openWO(a.dataset.open));
+  })().catch(()=>{});
 }
 async function partMoves(){
   openPanel('ประวัติการเคลื่อนไหวอะไหล่','100 รายการล่าสุด','<div class="loading">กำลังโหลด…</div>');
@@ -1988,6 +2056,76 @@ async function partMoves(){
       ${data.map(m=>`<tr><td class="small" style="white-space:nowrap">${fmtDT(m.created_at)}</td><td class="small"><span class="mono">${esc(m.part?.part_code)}</span> ${esc(m.part?.name)}</td><td class="small">${K[m.kind]}</td>
       <td class="num mono" style="color:${m.qty>0?'var(--ok)':'var(--bad)'}">${m.qty>0?'+':''}${fmtN(m.qty,2)}</td><td class="small muted">${esc(m.note||'')}<div>${esc(m.actor?.full_name||'')}</div></td></tr>`).join('')}</tbody></table></div>`:'<div class="empty">ยังไม่มีการเคลื่อนไหว</div>';
   } catch(e){ closePanel(); fail(e); }
+}
+
+/* Excel import: "Inventory Balance" layout (Part No, Part Name, Model, Specifications, Type, Item code, Balance, Unit, Safety/Min/Max/Reorder point, Supplier, Location, Unit price) */
+const PART_COLS = [
+  ['part_code', /^part\s*no|^part\s*code|รหัสอะไหล่/i], ['name', /^part\s*name|ชื่ออะไหล่/i], ['model', /^model|ยี่ห้อ|รุ่น/i], ['spec', /^spec|สเปก|รายละเอียด/i],
+  ['category', /^type$|^category|หมวด/i], ['item_code', /^item\s*code/i], ['balance', /^balance|คงเหลือ|ยอดคงเหลือ/i], ['unit', /^unit$|หน่วย/i],
+  ['safety_stock', /^safety/i], ['min_qty', /^min$/i], ['max_qty', /^max$/i], ['reorder_point', /reorder|จุดสั่งซื้อ/i],
+  ['supplier', /supplier|ผู้จำหน่าย|ผู้ขาย/i], ['storage_location', /^location|ที่เก็บ/i], ['unit_cost', /unit\s*price|^cost$|ราคา/i], ['remark', /^remark|หมายเหตุ/i]
+];
+function partImport(){
+  openPanel('นำเข้า / อัปเดตยอดอะไหล่จาก Excel', 'ใช้ไฟล์ Inventory Balance ได้โดยตรง · รหัสที่มีอยู่แล้วจะอัปเดตข้อมูลและยอดคงเหลือ · รหัสใหม่จะเพิ่มเข้าไป', `
+  <section class="card">
+    <label class="field"><span>เลือกไฟล์ (.xlsx, .xls, .csv)</span><input class="input" type="file" id="piFile" accept=".xlsx,.xls,.csv"></label>
+    <label class="field" id="piSheetW" hidden><span>ชีต</span><select class="input" id="piSheet"></select></label>
+    <div id="piOut"></div>
+  </section>`);
+  let wb = null, rows = [];
+  const analyse = async () => {
+    const out = $('#piOut');
+    const aoa = XLSX.utils.sheet_to_json(wb.Sheets[$('#piSheet').value], { header:1, raw:true, defval:'' });
+    const hi = aoa.findIndex(r => r.some(c => /^part\s*no|^part\s*code|รหัสอะไหล่/i.test(String(c).trim())));
+    if (hi < 0) { out.innerHTML = '<div class="note">ไม่พบหัวคอลัมน์ "Part No" ในชีตนี้</div>'; return; }
+    const h1 = aoa[hi].map(c=>String(c).trim()), h2 = (aoa[hi+1]||[]).map(c=>String(c).trim());
+    const map = {};
+    PART_COLS.forEach(([k,re]) => { let i = h1.findIndex(h => re.test(h)); if (i < 0 || k==='unit_cost' && h2.some(h=>/unit\s*price/i.test(h))) { const j = h2.findIndex(h => re.test(h)); if (j >= 0) i = j; } if (i >= 0) map[k] = i; });
+    if (map.part_code == null || map.balance == null) { out.innerHTML = '<div class="note">ต้องมีคอลัมน์ Part No และ Balance</div>'; return; }
+    const start = h2.some(h => /safety|min|max|reorder|unit price/i.test(h)) ? hi + 2 : hi + 1;
+    const val = (r,k) => map[k]==null ? '' : r[map[k]];
+    rows = aoa.slice(start).filter(r => String(val(r,'part_code')).trim()).map(r => { const o = {}; Object.keys(map).forEach(k => { let v = val(r,k); if (v instanceof Date) v = v.toISOString().slice(0,10); o[k] = typeof v === 'number' ? v : String(v).trim(); }); return o; });
+    const codes = rows.map(r=>String(r.part_code));
+    const dup = codes.filter((c,i)=>codes.indexOf(c)!==i);
+    const existing = new Map();
+    for (let i=0;i<codes.length;i+=300) { const { data } = await sb.from('spare_parts').select('part_code,quantity_on_hand').in('part_code', codes.slice(i,i+300)); (data||[]).forEach(p=>existing.set(p.part_code, Number(p.quantity_on_hand))); }
+    const isNew = rows.filter(r=>!existing.has(String(r.part_code))).length;
+    const changed = rows.filter(r=>existing.has(String(r.part_code)) && Number(r.balance) !== existing.get(String(r.part_code)));
+    const neg = rows.filter(r=>Number(r.balance) < 0);
+    const labels = { part_code:'Part No', name:'ชื่อ', model:'รุ่น', spec:'สเปก', category:'หมวด', item_code:'Item code', balance:'คงเหลือ', unit:'หน่วย', safety_stock:'Safety', min_qty:'Min', max_qty:'Max', reorder_point:'Reorder point', supplier:'ผู้จำหน่าย', storage_location:'ที่เก็บ', unit_cost:'ราคา/หน่วย', remark:'หมายเหตุ' };
+    out.innerHTML = `
+      <div class="kpis k4" style="margin:4px 0 0">${kpi('parts','ในไฟล์', fmtN(rows.length,0), 'รายการ', '', 'accent')}${kpi('plus','เพิ่มใหม่', fmtN(isNew,0), 'รายการ', '', 'ok')}${kpi('edit','ยอดเปลี่ยน', fmtN(changed.length,0), 'รายการ', 'บันทึกเป็นการปรับยอด', changed.length?'warn':'ok')}${kpi('pulse','ยอดติดลบ', fmtN(neg.length,0), 'รายการ', neg.length?'นำเข้าตามไฟล์':'', neg.length?'bad':'ok')}</div>
+      <p class="small muted">คอลัมน์ที่อ่านได้: ${Object.keys(map).map(k=>labels[k]).join(', ')}${dup.length?` · <span class="sla bad">รหัสซ้ำในไฟล์ ${dup.length} รายการ (ใช้แถวล่าสุด)</span>`:''}</p>
+      <div class="tbl-wrap" style="max-height:260px"><table class="compact"><thead><tr><th>Part No</th><th>ชื่อ</th><th class="num">คงเหลือ</th><th>หน่วย</th><th class="num">RP</th><th class="num">ราคา</th></tr></thead><tbody>${rows.slice(0,15).map(r=>`<tr><td class="mono">${esc(r.part_code)}</td><td>${esc(r.name)}</td><td class="num mono">${esc(r.balance)}</td><td>${esc(r.unit)}</td><td class="num mono">${esc(r.reorder_point)}</td><td class="num mono">${esc(r.unit_cost)}</td></tr>`).join('')}</tbody></table></div>
+      <label class="field"><span>อ้างอิง (บันทึกในประวัติการเคลื่อนไหว)</span><input class="input" id="piRef" value="${esc(($('#piFile').files[0]?.name||'Excel').replace(/\.[^.]+$/,''))}"></label>
+      <div class="row"><button class="btn primary" id="piGo">นำเข้า ${fmtN(rows.length,0)} รายการ</button><span class="small muted" id="piMsg"></span></div>`;
+    $('#piGo').onclick = async () => {
+      const btn = $('#piGo'); btn.disabled = true; const tot = { inserted:0, updated:0, adjusted:0 }; const ref = $('#piRef').value.trim();
+      const uniq = [...new Map(rows.map(r=>[String(r.part_code), r])).values()];
+      try {
+        for (let i=0;i<uniq.length;i+=200) { $('#piMsg').textContent = `กำลังนำเข้า ${fmtN(Math.min(i+200,uniq.length),0)} / ${fmtN(uniq.length,0)}…`;
+          const { data } = await q(sb.rpc('import_parts', { p_rows: uniq.slice(i,i+200), p_source: ref })); Object.keys(tot).forEach(k=>tot[k]+=data[k]||0); }
+        closePanel(); toast(`นำเข้าแล้ว: เพิ่มใหม่ ${tot.inserted} · อัปเดต ${tot.updated} · ปรับยอด ${tot.adjusted} รายการ`); partFilter.page=0; PAGES.parts().catch(fail); refreshAlerts();
+      } catch(e){ fail(e); btn.disabled = false; $('#piMsg').textContent = `หยุดที่รายการที่ ${tot.inserted+tot.updated+1}`; }
+    };
+  };
+  $('#piFile').onchange = async e => { const f = e.target.files[0]; if (!f) return; $('#piOut').innerHTML = '<div class="loading">กำลังอ่านไฟล์…</div>';
+    try { await loadXLSX(); wb = XLSX.read(await f.arrayBuffer(), { cellDates:true });
+      $('#piSheet').innerHTML = wb.SheetNames.map(n=>`<option>${esc(n)}</option>`).join(''); $('#piSheetW').hidden = wb.SheetNames.length < 2; await analyse(); } catch(err){ fail(err); $('#piOut').innerHTML=''; } };
+  $('#piSheet').onchange = () => wb && analyse().catch(fail);
+}
+
+/* searchable part picker used in work orders */
+function bindPartCombo(inp, list, onPick){
+  let timer;
+  inp.addEventListener('input', () => { onPick(null); clearTimeout(timer); const term = inp.value.trim(); if (!term) { list.hidden = true; return; }
+    timer = setTimeout(async () => {
+      const { data } = await partSearch(sb.from('spare_parts').select('id,part_code,name,unit,quantity_on_hand,model,spec'), term).order('part_code').limit(20);
+      list.innerHTML = (data||[]).map(p=>`<button type="button" data-id="${p.id}"><span class="mono">${esc(p.part_code)}</span> · ${esc(p.name)} <span class="small muted">${esc(partSub(p))} · คงเหลือ ${fmtN(p.quantity_on_hand,2)} ${esc(p.unit)}</span></button>`).join('') || '<div class="empty">ไม่พบอะไหล่</div>';
+      list.hidden = false;
+      $$('button', list).forEach(b => b.onclick = () => { const p = data.find(x=>x.id===b.dataset.id); inp.value = `${p.part_code} · ${p.name}`; list.hidden = true; onPick(p); });
+    }, 220); });
+  inp.addEventListener('blur', () => setTimeout(() => list.hidden = true, 200));
 }
 
 /* ============ TECHNICIANS ============ */
@@ -2777,7 +2915,7 @@ async function refreshAlerts(){
   if (n.overdue) jobs.push(base().lt('due_date',now).limit(20).then(r=>(r.data||[]).forEach(w=>items.push({k:'overdue',t:`เกินกำหนด ${w.code}`,d:w.title,wo:w.id,at:w.due_date}))));
   if (n.unassigned && can('wo.assign')) jobs.push(sb.from('work_orders').select('id,code,title,created_at').in('status',OPEN).is('assigned_to',null).lt('created_at', new Date(Date.now()-(n.unassigned_minutes||30)*6e4).toISOString()).limit(20)
       .then(r=>(r.data||[]).forEach(w=>items.push({k:'unassigned',t:`ยังไม่มอบหมาย ${w.code}`,d:`${w.title} · รอมาแล้ว ${timeAgo(w.created_at)}`,wo:w.id,at:w.created_at}))));
-  if (n.low_stock && (can('part.view')||can('part.manage'))) jobs.push(sb.from('spare_parts').select('id,part_code,name,quantity_on_hand,reorder_point,unit').then(r=>(r.data||[]).filter(p=>Number(p.quantity_on_hand)<=Number(p.reorder_point)).forEach(p=>items.push({k:'stock',t:`อะไหล่ใกล้หมด ${p.part_code}`,d:`${p.name} คงเหลือ ${fmtN(p.quantity_on_hand,2)} ${p.unit}`,href:'#parts'}))));
+  if (n.low_stock && (can('part.view')||can('part.manage'))) jobs.push(sb.from('spare_parts').select('id,part_code,name,quantity_on_hand,reorder_point,unit').eq('is_low',true).order('quantity_on_hand').limit(30).then(r=>(r.data||[]).forEach(p=>items.push({k:'stock',t:`อะไหล่ใกล้หมด ${p.part_code}`,d:`${p.name} คงเหลือ ${fmtN(p.quantity_on_hand,2)} ${p.unit}`,href:'#parts'}))));
   if (n.pm_due && (can('pm.view')||can('pm.manage'))) jobs.push(sb.from('pm_schedules').select('id,name,next_due_date').eq('active',true).lte('next_due_date',today()).limit(20).then(r=>(r.data||[]).forEach(p=>items.push({k:'pm',t:`PM ถึงกำหนด`,d:`${p.name} · ${fmtD(p.next_due_date)}`,href:'#pm'}))));
   if (can('wo.approve')) jobs.push(sb.from('work_orders').select('id,code,title,completed_at').eq('status','done').order('completed_at').limit(20)
       .then(r=>(r.data||[]).forEach(w=>items.push({k:'verify',t:`รอตรวจรับ ${w.code}`,d:`${w.title} · รอมา ${timeAgo(w.completed_at)}`,wo:w.id,at:w.completed_at}))));
@@ -3014,8 +3152,8 @@ PAGES.settings = async () => {
     $('#sysRe').onclick=again;
     $('#expEq').onclick=async()=>{ try { const {data}=await q(sb.from('equipment').select('asset_code,name,category,status,manufacturer,model,serial_number,purchase_date,warranty_expiry,notes,location:location_id(name)').order('asset_code').limit(20000));
       downloadCsv(`equipment-${today()}.csv`, [['รหัสทรัพย์สิน','ชื่อ','หมวด','สถานะ','ยี่ห้อ','รุ่น','Serial','วันที่ซื้อ','ประกันถึง','พื้นที่','หมายเหตุ'], ...data.map(e=>[e.asset_code,e.name,e.category,e.status,e.manufacturer,e.model,e.serial_number,e.purchase_date,e.warranty_expiry,e.location?.name,e.notes])]); } catch(e){ fail(e); } };
-    $('#expPt').onclick=async()=>{ try { const {data}=await q(sb.from('spare_parts').select('*').order('part_code'));
-      downloadCsv(`spare-parts-${today()}.csv`, [['รหัส','ชื่อ','หน่วย','คงเหลือ','จุดสั่งซื้อ','ราคา/หน่วย','ที่เก็บ','ผู้จำหน่าย'], ...data.map(p=>[p.part_code,p.name,p.unit,p.quantity_on_hand,p.reorder_point,p.unit_cost,p.storage_location,p.supplier])]); } catch(e){ fail(e); } };
+    $('#expPt').onclick=async()=>{ try { const data=[]; for (let i=0;;i+=1000) { const {data:d}=await q(sb.from('spare_parts').select('*').order('part_code').range(i,i+999)); data.push(...d); if (d.length<1000) break; }
+      downloadCsv(`spare-parts-${today()}.csv`, [['Part No','Item code','ชื่อ','รุ่น','สเปก','หมวด','หน่วย','คงเหลือ','Safety','Min','Max','Reorder point','ราคา/หน่วย','ที่เก็บ','ผู้จำหน่าย'], ...data.map(p=>[p.part_code,p.item_code,p.name,p.model,p.spec,p.category,p.unit,p.quantity_on_hand,p.safety_stock,p.min_qty,p.max_qty,p.reorder_point,p.unit_cost,p.storage_location,p.supplier])]); } catch(e){ fail(e); } };
   }
 
   else if (settingsTab==='users') await usersPage(B);
