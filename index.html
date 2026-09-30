@@ -621,7 +621,7 @@ table.compact td{white-space:nowrap}
 /* ============ CONFIG ============ */
 const SB_URL = 'https://jtfeumjnqzozlmqlpcio.supabase.co';
 const SB_KEY = 'sb_publishable_m33nyCNfh5nKma5LxgV85g_ZLeQa052';
-const APP_VERSION = '1.2.0';
+const APP_VERSION = '1.2.1';
 const TZ = 'Asia/Bangkok';
 
 const sb = supabase.createClient(SB_URL, SB_KEY, { auth: { persistSession: true, autoRefreshToken: true } });
@@ -846,7 +846,7 @@ function renderShell(){
   <div class="app">
     <aside class="side" id="side">
       <div class="brand">${brandHTML()}</div>
-      <nav class="nav" id="nav">${NAV.filter(n=>n[2]()).map(n=>`<a href="#${n[0]}" data-r="${n[0]}">${svgI(n[0])}<span>${n[1]}</span>${n[0]==='repair'?'<span class="count" id="nav-open" hidden></span>':n[0]==='verify'?'<span class="count warn" id="nav-verify" hidden></span>':''}</a>`).join('')}</nav>
+      <nav class="nav" id="nav">${NAV.filter(n=>n[2]()).map(n=>`<a href="#${n[0]}" data-r="${n[0]}">${svgI(n[0])}<span>${n[1]}</span>${n[0]==='repair'?'<span class="count" id="nav-open" hidden title="งานซ่อม (CM) ที่ยังค้าง"></span>':n[0]==='pm'?'<span class="count" id="nav-pm" hidden title="ใบงาน PM ที่ยังค้าง"></span>':n[0]==='verify'?'<span class="count warn" id="nav-verify" hidden></span>':''}</a>`).join('')}</nav>
       <div class="me"><button class="btn sm" id="installBtn" hidden style="margin-bottom:8px">${svgI('download')} ติดตั้งแอปบนเครื่อง</button><b>${esc(S.profile.full_name)}</b><span>${ROLE[role()]}${S.profile.team_id?' · '+esc(S.teams.find(t=>t.id===S.profile.team_id)?.name||''):''}</span><button id="logout">ออกจากระบบ</button></div>
     </aside>
     <div class="scrim" id="sideScrim" hidden></div>
@@ -887,10 +887,13 @@ function renderShell(){
 }
 function closeSide(){ $('#side')?.classList.remove('open'); const s=$('#sideScrim'); if(s) s.hidden=true; }
 async function refreshOpenCount(){
-  let qq = sb.from('work_orders').select('id',{count:'exact',head:true}).in('status', OPEN);
-  if (isTech()) qq = qq.eq('assigned_to', uid());
-  const { count } = await qq; const el=$('#nav-open');
-  if (el) { el.hidden = !count; el.textContent = count; }
+  const cnt = async pm => { let qq = sb.from('work_orders').select('id',{count:'exact',head:true}).in('status', OPEN);
+    qq = pm ? qq.eq('source','pm') : qq.neq('source','pm');
+    if (isTech()) qq = qq.eq('assigned_to', uid());
+    return (await qq).count || 0; };
+  const [cm, pmn] = await Promise.all([cnt(false), $('#nav-pm') ? cnt(true) : 0]);
+  const el=$('#nav-open'); if (el) { el.hidden = !cm; el.textContent = cm; }
+  const ep=$('#nav-pm'); if (ep) { ep.hidden = !pmn; ep.textContent = pmn; }
   const ve = $('#nav-verify');
   if (ve) { const r = await sb.from('work_orders').select('id',{count:'exact',head:true}).eq('status','done'); ve.hidden = !r.count; ve.textContent = r.count; }
 }
