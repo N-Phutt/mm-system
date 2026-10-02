@@ -366,6 +366,10 @@ tr.is-off td{opacity:.55}
 .pick-list{display:contents}
 .pick-it{position:relative;width:84px;height:84px}
 .pick-it img{width:100%;height:100%;object-fit:cover;border-radius:8px;border:1px solid var(--line);display:block}
+.pick-it video,.vthumb video{width:100%;height:100%;object-fit:cover;border-radius:8px;border:1px solid var(--line);display:block;background:#000}
+.vthumb{position:relative;display:block;width:84px;height:84px}
+.vplay{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:30px;height:30px;border-radius:50%;background:rgba(0,0,0,.55);color:#fff;display:grid;place-items:center;font-size:12px;pointer-events:none}
+.vsize{position:absolute;left:4px;bottom:4px;background:rgba(0,0,0,.6);color:#fff;font-size:10px;padding:0 4px;border-radius:4px}
 .pick-it button{position:absolute;top:-6px;right:-6px;width:24px;height:24px;border-radius:50%;border:0;background:var(--bad);color:#fff;font-size:16px;line-height:1;cursor:pointer;display:grid;place-items:center}
 .pick-add{width:84px;height:84px;border:1.5px dashed var(--line);border-radius:8px;display:grid;place-items:center;align-content:center;gap:4px;text-align:center;font-size:11px;color:var(--ink-2);cursor:pointer;background:var(--surface);padding:4px}
 .pick-add svg{width:24px;height:24px;color:var(--accent)}
@@ -633,7 +637,7 @@ table.compact td{white-space:nowrap}
 /* ============ CONFIG ============ */
 const SB_URL = 'https://jtfeumjnqzozlmqlpcio.supabase.co';
 const SB_KEY = 'sb_publishable_m33nyCNfh5nKma5LxgV85g_ZLeQa052';
-const APP_VERSION = '1.3.1';
+const APP_VERSION = '1.4.0';
 const TZ = 'Asia/Bangkok';
 
 const sb = supabase.createClient(SB_URL, SB_KEY, { auth: { persistSession: true, autoRefreshToken: true } });
@@ -1486,8 +1490,8 @@ PAGES.new = async (preset) => {
     if (f.assigned_to || self) { row.assigned_to = f.assigned_to || uid(); row.status='assigned'; row.assigned_at=new Date().toISOString(); }
     try {
       const { data } = await q(sb.from('work_orders').insert(row).select('id,code').single());
-      if (pick.files.length) { btn.textContent = 'กำลังอัปโหลดรูป…'; try { await uploadReportPhotos(data.id, pick.files, S.profile.full_name); } catch(err){ toast('สร้างใบงานแล้ว แต่แนบรูปไม่สำเร็จ: '+thaiErr(err), true); } }
-      toast('สร้างใบงาน '+data.code+' แล้ว'+(pick.files.length?` · แนบรูป ${pick.files.length} รูป`:'')); refreshOpenCount();
+      if (pick.files.length) { btn.textContent = 'กำลังอัปโหลด…'; try { await uploadReportPhotos(data.id, pick.files, S.profile.full_name); } catch(err){ toast('สร้างใบงานแล้ว แต่แนบไฟล์ไม่สำเร็จ: '+thaiErr(err), true); } }
+      toast('สร้างใบงาน '+data.code+' แล้ว'+(pick.files.length?` · แนบ${mediaWord(pick.files)}`:'')); refreshOpenCount();
       location.hash = row.source==='pm' ? '#wo' : '#repair'; setTimeout(()=>openWO(data.id), 300);
     } catch(err){ fail(err); btn.disabled=false; }
   };
@@ -1529,11 +1533,12 @@ async function renderPublicReport(code){
       reporter_name:f.name, reporter_contact:nz(f.contact), source:'qr', status:'new', equipment_down:$('#pf-down').checked });
     if (error) { msg(thaiErr(error)); $('#pf-btn').disabled=false; return; }
     let photoErr = '';
-    if (pick.files.length) { msg(`กำลังอัปโหลดรูป ${pick.files.length} รูป…`, true);
-      try { await uploadReportPhotos(id, pick.files, f.name); } catch(err){ photoErr = ' แต่แนบรูปไม่สำเร็จ ('+thaiErr(err)+')'; } }
-    const nPh = pick.files.length;
+    const sent = [...pick.files];
+    if (sent.length) { msg(`กำลังอัปโหลด${mediaWord(sent)}… (วิดีโออาจใช้เวลาสักครู่)`, true);
+      try { await uploadReportPhotos(id, sent, f.name); } catch(err){ photoErr = ' แต่แนบไฟล์ไม่สำเร็จ ('+thaiErr(err)+')'; } }
+    const nPh = sent.length;
     e.target.reset(); pick.clear(); $('#pf-btn').disabled=false;
-    msg('ส่งแจ้งซ่อมเรียบร้อย ทีมช่างได้รับเรื่องแล้ว' + (nPh && !photoErr ? ` · แนบรูป ${nPh} รูป` : '') + photoErr, !photoErr);
+    msg('ส่งแจ้งซ่อมเรียบร้อย ทีมช่างได้รับเรื่องแล้ว' + (nPh && !photoErr ? ` · แนบ${mediaWord(sent)}` : '') + photoErr, !photoErr);
   };
 }
 
@@ -2422,62 +2427,76 @@ function compressImage(file, max=1600, quality=0.8){
     img.src = url;
   });
 }
-async function uploadWoPhotos(woId, kind, files){
+/* media (photo + video) */
+const VIDEO_MAX_MB = 50;
+const isVideo = f => /^video\//.test(f?.type || f?.content_type || '') || /\.(mp4|mov|webm|3gp)$/i.test(f?.storage_path || f?.name || '');
+const VIDEO_TYPES = { 'video/mp4':'mp4', 'video/quicktime':'mov', 'video/webm':'webm', 'video/3gpp':'3gp' };
+function checkMedia(f){
+  if (/^image\//.test(f.type)) return null;
+  if (!isVideo(f)) return `${f.name}: แนบได้เฉพาะรูปภาพหรือวิดีโอ`;
+  if (!VIDEO_TYPES[f.type || 'video/mp4'] && f.type) return `${f.name}: รองรับวิดีโอ MP4 / MOV / WEBM`;
+  if (f.size > VIDEO_MAX_MB*1024*1024) return `${f.name}: วิดีโอใหญ่ ${fmtN(f.size/1048576,0)} MB เกิน ${VIDEO_MAX_MB} MB (ถ่ายสั้นลง ไม่เกิน ~30 วินาที)`;
+  return null;
+}
+async function uploadMedia(woId, kind, files, name){
   let n = 0;
   for (const f of files) {
-    const blob = await compressImage(f);
-    const path = `${woId}/${kind}-${Date.now()}-${Math.random().toString(36).slice(2,7)}.jpg`;
-    const up = await sb.storage.from(PHOTO_BUCKET).upload(path, blob, { contentType:'image/jpeg', upsert:false });
+    const err = checkMedia(f); if (err) throw new Error(err);
+    const vid = isVideo(f);
+    const blob = vid ? f : await compressImage(f);
+    const type = vid ? (VIDEO_TYPES[f.type] ? f.type : 'video/mp4') : 'image/jpeg';
+    const ext = vid ? VIDEO_TYPES[type] : 'jpg';
+    const path = `${woId}/${kind}-${Date.now()}-${Math.random().toString(36).slice(2,7)}.${ext}`;
+    const up = await sb.storage.from(PHOTO_BUCKET).upload(path, blob, { contentType:type, upsert:false });
     if (up.error) throw up.error;
-    await q(sb.from('work_order_attachments').insert({ work_order_id:woId, storage_path:path, file_name:f.name||'photo.jpg', content_type:'image/jpeg', size_bytes:blob.size, uploaded_by:uid(), uploader_name:S.profile.full_name, kind }));
-    n++;
-  }
-  if (n) await sb.from('work_order_events').insert({ work_order_id:woId, actor_id:uid(), event_type:'comment', comment:`แนบรูป${kind==='before'?'ก่อนซ่อม':kind==='after'?'หลังซ่อม':''} ${n} รูป` });
-  return n;
-}
-const photoInput = (id, kind, label) => `<label class="btn photo-btn" for="${id}">${svgI('camera')} ${label}<input type="file" id="${id}" data-kind="${kind}" accept="image/*" capture="environment" multiple hidden></label>`;
-/* photo picker for new reports (before the work order exists) */
-const PICK_MAX = 5;
-const photoPicker = id => `<div class="field"><span>แนบรูปภาพ <small class="muted">(ไม่บังคับ · สูงสุด ${PICK_MAX} รูป)</small></span>
-  <div class="pick" id="${id}"><div class="pick-list"></div>
-    <label class="pick-add">${svgI('camera')}<span>ถ่ายรูป / เลือกรูป</span><input type="file" accept="image/*" multiple hidden></label></div></div>`;
-function bindPhotoPicker(id){
-  const box = $('#'+id), list = $('.pick-list', box), add = $('.pick-add', box), inp = $('input', box); let files = [];
-  const paint = () => { list.querySelectorAll('img').forEach(i=>URL.revokeObjectURL(i.src));
-    list.innerHTML = files.map((f,i)=>`<div class="pick-it"><img src="${URL.createObjectURL(f)}" alt="รูปที่ ${i+1}"><button type="button" data-rm="${i}" aria-label="ลบรูป">×</button></div>`).join('');
-    add.hidden = files.length >= PICK_MAX;
-    $$('[data-rm]', list).forEach(b=>b.onclick=()=>{ files.splice(Number(b.dataset.rm),1); paint(); }); };
-  inp.onchange = () => { const nw=[...inp.files].filter(f=>/^image\//.test(f.type)); if (files.length+nw.length > PICK_MAX) toast(`แนบได้สูงสุด ${PICK_MAX} รูป`, true);
-    files = files.concat(nw).slice(0, PICK_MAX); inp.value=''; paint(); };
-  return { get files(){ return files; }, clear(){ files=[]; paint(); } };
-}
-async function uploadReportPhotos(woId, files, name){
-  let n = 0;
-  for (const f of files) {
-    const blob = await compressImage(f);
-    const path = `${woId}/before-${Date.now()}-${Math.random().toString(36).slice(2,7)}.jpg`;
-    const up = await sb.storage.from(PHOTO_BUCKET).upload(path, blob, { contentType:'image/jpeg', upsert:false });
-    if (up.error) throw up.error;
-    const row = { work_order_id:woId, storage_path:path, file_name:f.name||'photo.jpg', content_type:'image/jpeg', size_bytes:blob.size, uploader_name:name, kind:'before' };
+    const row = { work_order_id:woId, storage_path:path, file_name:f.name||(vid?'video.'+ext:'photo.jpg'), content_type:type, size_bytes:blob.size, uploader_name:name, kind };
     if (S.profile) row.uploaded_by = uid();
     const { error } = await sb.from('work_order_attachments').insert(row); if (error) throw error;
     n++;
   }
   return n;
 }
+const mediaWord = files => { const v = files.filter(isVideo).length, p = files.length - v; return [p?`รูป ${p}`:'', v?`วิดีโอ ${v}`:''].filter(Boolean).join(' · '); };
+async function uploadWoPhotos(woId, kind, files){
+  const n = await uploadMedia(woId, kind, files, S.profile.full_name);
+  if (n) await sb.from('work_order_events').insert({ work_order_id:woId, actor_id:uid(), event_type:'comment', comment:`แนบ${kind==='before'?'ก่อนซ่อม':kind==='after'?'หลังซ่อม':''} ${mediaWord(files)}` });
+  return n;
+}
+const mediaThumb = (url, a, title='') => isVideo(a)
+  ? `<a class="vthumb" href="${esc(url||'#')}" target="_blank" rel="noopener" title="${esc(title||'วิดีโอ')}"><video src="${esc(url||'')}#t=0.1" preload="metadata" muted playsinline></video><span class="vplay" aria-hidden="true">▶</span></a>`
+  : `<a href="${esc(url||'#')}" target="_blank" rel="noopener" title="${esc(title)}"><img src="${esc(url||'')}" alt="รูปใบงาน" loading="lazy"></a>`;
+const photoInput = (id, kind, label) => `<label class="btn photo-btn" for="${id}">${svgI('camera')} ${label}<input type="file" id="${id}" data-kind="${kind}" accept="image/*" capture="environment" multiple hidden></label>`;
+const videoInput = (id, kind, label) => `<label class="btn photo-btn" for="${id}">▶ ${label}<input type="file" id="${id}" data-kind="${kind}" accept="video/*" capture="environment" hidden></label>`;
+/* photo picker for new reports (before the work order exists) */
+const PICK_MAX = 5;
+const photoPicker = id => `<div class="field"><span>แนบรูปภาพ / วิดีโอ <small class="muted">(ไม่บังคับ · สูงสุด ${PICK_MAX} ไฟล์ · วิดีโอไม่เกิน ${VIDEO_MAX_MB} MB)</small></span>
+  <div class="pick" id="${id}"><div class="pick-list"></div>
+    <label class="pick-add">${svgI('camera')}<span>ถ่ายรูป / วิดีโอ หรือเลือกไฟล์</span><input type="file" accept="image/*,video/*" multiple hidden></label></div></div>`;
+function bindPhotoPicker(id){
+  const box = $('#'+id), list = $('.pick-list', box), add = $('.pick-add', box), inp = $('input', box); let files = [];
+  const paint = () => { list.querySelectorAll('img,video').forEach(i=>URL.revokeObjectURL(i.src.split('#')[0]));
+    list.innerHTML = files.map((f,i)=>`<div class="pick-it">${isVideo(f)?`<video src="${URL.createObjectURL(f)}#t=0.1" preload="metadata" muted playsinline></video><span class="vplay" aria-hidden="true">▶</span><span class="vsize">${f.size<1048576?Math.max(1,Math.round(f.size/1024))+' KB':(f.size/1048576).toFixed(1)+' MB'}</span>`:`<img src="${URL.createObjectURL(f)}" alt="รูปที่ ${i+1}">`}<button type="button" data-rm="${i}" aria-label="ลบไฟล์">×</button></div>`).join('');
+    add.hidden = files.length >= PICK_MAX;
+    $$('[data-rm]', list).forEach(b=>b.onclick=()=>{ files.splice(Number(b.dataset.rm),1); paint(); }); };
+  inp.onchange = () => { const all=[...inp.files], bad=all.map(checkMedia).filter(Boolean); if (bad.length) toast(bad[0], true);
+    const nw=all.filter(f=>!checkMedia(f)); if (files.length+nw.length > PICK_MAX) toast(`แนบได้สูงสุด ${PICK_MAX} ไฟล์`, true);
+    files = files.concat(nw).slice(0, PICK_MAX); inp.value=''; paint(); };
+  return { get files(){ return files; }, clear(){ files=[]; paint(); } };
+}
+const uploadReportPhotos = (woId, files, name) => uploadMedia(woId, 'before', files, name);
 async function paintPhotos(w, box, canAdd){
   const { data } = await sb.from('work_order_attachments').select('*').eq('work_order_id', w.id).order('created_at');
   const list = data || [];
   let urls = {};
   if (list.length) { const r = await sb.storage.from(PHOTO_BUCKET).createSignedUrls(list.map(a=>a.storage_path), 3600); (r.data||[]).forEach(x=>{ if (x.signedUrl) urls[x.path]=x.signedUrl; }); }
   const group = k => list.filter(a=>(a.kind||'other')===k);
-  const thumbs = arr => arr.length ? `<div class="thumbs">${arr.map(a=>`<a href="${esc(urls[a.storage_path]||'#')}" target="_blank" rel="noopener" title="${esc(a.uploader_name||'')} · ${fmtDT(a.created_at)}"><img src="${esc(urls[a.storage_path]||'')}" alt="รูปใบงาน" loading="lazy"></a>`).join('')}</div>` : '<p class="small muted" style="margin:0">ยังไม่มีรูป</p>';
-  box.innerHTML = `<div class="card-head"><h3>รูปภาพ</h3><span class="small muted">${list.length} รูป</span></div>
+  const thumbs = arr => arr.length ? `<div class="thumbs">${arr.map(a=>mediaThumb(urls[a.storage_path], a, `${a.uploader_name||''} · ${fmtDT(a.created_at)}`)).join('')}</div>` : '<p class="small muted" style="margin:0">ยังไม่มีรูป</p>';
+  box.innerHTML = `<div class="card-head"><h3>รูปภาพ / วิดีโอ</h3><span class="small muted">${mediaWord(list) || '0 ไฟล์'}</span></div>
     <div class="photo-cols"><div><div class="label">ก่อนซ่อม</div>${thumbs(group('before'))}</div><div><div class="label">หลังซ่อม</div>${thumbs(group('after'))}</div>${group('other').length?`<div><div class="label">อื่น ๆ</div>${thumbs(group('other'))}</div>`:''}</div>
-    ${canAdd?`<div class="row">${photoInput('ph-before','before','รูปก่อนซ่อม')}${photoInput('ph-after','after','รูปหลังซ่อม')}<span class="small muted" id="phMsg"></span></div>`:''}`;
+    ${canAdd?`<div class="row">${photoInput('ph-before','before','รูปก่อนซ่อม')}${photoInput('ph-after','after','รูปหลังซ่อม')}${videoInput('vd-before','before','วิดีโอก่อนซ่อม')}${videoInput('vd-after','after','วิดีโอหลังซ่อม')}<span class="small muted" id="phMsg"></span></div>`:''}`;
   $$('input[type=file][data-kind]', box).forEach(inp => inp.onchange = async () => {
     if (!inp.files.length) return; $('#phMsg').textContent = 'กำลังอัปโหลด…';
-    try { const n = await uploadWoPhotos(w.id, inp.dataset.kind, [...inp.files]); toast(`อัปโหลด ${n} รูปแล้ว`); paintPhotos(w, box, canAdd); } catch(e){ fail(e); $('#phMsg').textContent=''; }
+    try { const fs=[...inp.files]; await uploadWoPhotos(w.id, inp.dataset.kind, fs); toast(`อัปโหลด${mediaWord(fs)}แล้ว`); paintPhotos(w, box, canAdd); } catch(e){ fail(e); $('#phMsg').textContent=''; }
   });
 }
 
@@ -2537,12 +2556,12 @@ function quickFinish(w, after){
     <label class="field"><span>สาเหตุของปัญหา</span><input class="input" id="qf-cause" value="${esc(w.failure_cause||'')}" placeholder="เช่น ลูกปืนสึก, ฟิวส์ขาด"></label>
     <div class="field"><span>งานที่ทำ <em class="req">*</em></span><div class="chips">${FIX_CHIPS.map(c=>`<button type="button" class="qchip" data-chip="${esc(c)}">${esc(c)}</button>`).join('')}</div>
       <textarea class="input" id="qf-text" required placeholder="อธิบายงานที่ทำ">${esc(w.resolution||'')}</textarea></div>
-    <div class="row">${photoInput('qf-photo','after','ถ่ายรูปหลังซ่อม')}<span class="small muted" id="qf-ph"></span></div>
+    <div class="row"><label class="btn photo-btn" for="qf-photo">${svgI('camera')} ถ่ายรูป / วิดีโอหลังซ่อม<input type="file" id="qf-photo" accept="image/*,video/*" multiple hidden></label><span class="small muted" id="qf-ph"></span></div>
     <button class="btn ok big">${svgI('check')} ยืนยันซ่อมเสร็จ</button>
   </form>`);
   let files = [];
   $$('[data-chip]').forEach(b=>b.onclick=()=>{ const t=$('#qf-text'); t.value = t.value ? t.value.replace(/\s*$/,'') + ', ' + b.dataset.chip : b.dataset.chip; t.focus(); });
-  $('#qf-photo').onchange = e => { files=[...e.target.files]; $('#qf-ph').textContent = files.length ? `เลือก ${files.length} รูป` : ''; };
+  $('#qf-photo').onchange = e => { files=[...e.target.files]; const bad=files.map(checkMedia).filter(Boolean); if (bad.length) { toast(bad[0], true); files=files.filter(f=>!checkMedia(f)); } $('#qf-ph').textContent = files.length ? `เลือก${mediaWord(files)}` : ''; };
   $('#qfForm').onsubmit = async e => { e.preventDefault(); const r=$('#qf-text').value.trim(); if (!r) return toast('กรุณาบันทึกงานที่ทำ', true);
     const btn=$('#qfForm .btn.ok'); btn.disabled=true;
     try {
@@ -2583,7 +2602,7 @@ PAGES.my = async () => {
       ${w.verify_result==='rejected' && OPEN.includes(w.status) ? `<div class="rework-note">↩ <b>Engineer ส่งกลับแก้ไข${w.rework_count>1?` (ครั้งที่ ${w.rework_count})`:''}:</b> ${esc(w.verify_note||'')}</div>` : ''}
       <div class="job-status">${statusPill(w.status)} <span class="small muted">แจ้ง ${timeAgo(w.created_at)}ที่แล้ว</span></div>
       <div class="job-acts"><button class="btn ${next[2]} big" data-do="${next[0]}">${next[1]}</button>
-        ${!isPool?`<label class="btn big icon-only" title="ถ่ายรูป">${svgI('camera')}<input type="file" accept="image/*" capture="environment" multiple hidden data-snap></label>`:''}
+        ${!isPool?`<label class="btn big icon-only" title="ถ่ายรูป / วิดีโอ">${svgI('camera')}<input type="file" accept="image/*,video/*" multiple hidden data-snap></label>`:''}
         ${!isPool && w.status==='in_progress'?`<button class="btn big" data-do="hold" title="พักงาน">พัก</button>`:''}
         <button class="btn big" data-do="open">รายละเอียด</button></div>
     </article>`; };
@@ -2603,7 +2622,7 @@ PAGES.my = async () => {
         refreshOpenCount(); PAGES.my().catch(fail);
       } catch(e){ fail(e); b.disabled=false; } });
     const snap = $('[data-snap]', el);
-    if (snap) snap.onchange = async () => { if (!snap.files.length) return; try { const n = await uploadWoPhotos(w.id, w.status==='in_progress'?'after':'before', [...snap.files]); toast(`อัปโหลด ${n} รูปแล้ว`); } catch(e){ fail(e); } };
+    if (snap) snap.onchange = async () => { if (!snap.files.length) return; try { const fs=[...snap.files]; await uploadWoPhotos(w.id, w.status==='in_progress'?'after':'before', fs); toast(`อัปโหลด${mediaWord(fs)}แล้ว`); } catch(e){ fail(e); } };
   });
 };
 
@@ -2859,7 +2878,7 @@ PAGES.verify = async () => {
   ]);
   const ids = list.map(w=>w.id);
   const [att, parts, pmr] = ids.length ? await Promise.all([
-    sb.from('work_order_attachments').select('work_order_id,storage_path,kind').in('work_order_id', ids),
+    sb.from('work_order_attachments').select('work_order_id,storage_path,kind,content_type').in('work_order_id', ids),
     sb.from('work_order_parts').select('work_order_id,quantity_used,part:part_id(part_code,name,unit)').in('work_order_id', ids),
     sb.from('pm_results').select('work_order_id,result').in('work_order_id', ids)
   ]) : [{data:[]},{data:[]},{data:[]}];
@@ -2870,7 +2889,7 @@ PAGES.verify = async () => {
   const card = w => {
     const ph = by(att.data, w.id), pt = by(parts.data, w.id), pr = by(pmr.data, w.id);
     const fails = pr.filter(r=>r.result==='fail').length, passes = pr.filter(r=>r.result==='pass').length;
-    const thumbs = k => { const a = ph.filter(x=>(x.kind||'other')===k); return a.length ? `<div><div class="label">${k==='before'?'ก่อนซ่อม':k==='after'?'หลังซ่อม':'อื่น ๆ'}</div><div class="thumbs">${a.slice(0,4).map(x=>`<a href="${esc(urls[x.storage_path]||'#')}" target="_blank" rel="noopener"><img src="${esc(urls[x.storage_path]||'')}" alt="รูปใบงาน" loading="lazy"></a>`).join('')}</div></div>` : ''; };
+    const thumbs = k => { const a = ph.filter(x=>(x.kind||'other')===k); return a.length ? `<div><div class="label">${k==='before'?'ก่อนซ่อม':k==='after'?'หลังซ่อม':'อื่น ๆ'}</div><div class="thumbs">${a.slice(0,4).map(x=>mediaThumb(urls[x.storage_path], x)).join('')}</div></div>` : ''; };
     const downH = w.downtime_start ? (new Date(w.downtime_end||Date.now()) - new Date(w.downtime_start))/36e5 : null;
     return `<article class="vq-card ${w.equipment?.criticality==='critical'||w.equipment_down?'hot':''}" data-vq="${w.id}">
       <div class="vq-top"><a class="mono" data-open="${w.id}" href="javascript:void 0">${esc(w.code)}</a>${prioTag(w.priority)}${w.source==='pm'?'<span class="pill plain">PM</span>':''}${critFlag(w.equipment?.criticality)}${reworkTag(w)}<span class="vq-wait ${late(w)?'late':''}">รอตรวจรับ ${timeAgo(w.completed_at)}</span></div>
