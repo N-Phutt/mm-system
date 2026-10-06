@@ -642,7 +642,7 @@ table.compact td{white-space:nowrap}
 /* ============ CONFIG ============ */
 const SB_URL = 'https://jtfeumjnqzozlmqlpcio.supabase.co';
 const SB_KEY = 'sb_publishable_m33nyCNfh5nKma5LxgV85g_ZLeQa052';
-const APP_VERSION = '1.5.2';
+const APP_VERSION = '1.5.3';
 const TZ = 'Asia/Bangkok';
 
 const sb = supabase.createClient(SB_URL, SB_KEY, { auth: { persistSession: true, autoRefreshToken: true } });
@@ -2407,7 +2407,7 @@ async function techDetail(s){
     </section>`:''}
     <section class="card"><h3>งานในมือ (${wos.length})</h3>${woTable(wos,false)}</section>`;
   bindWoRows();
-  const done = async msg => { await loadRefs(); toast(msg); closePanel(); PAGES.tech().catch(fail); };
+  const done = async msg => { await loadRefs(); toast(msg); closePanel(); (location.hash.startsWith('#settings') ? PAGES.settings() : PAGES.tech()).catch(fail); };
   $('#tdForm').onsubmit = async e => { e.preventDefault(); const f=formData(e.target);
     const patch = { full_name:f.full_name, position:nz(f.position), team_id:nz(f.team_id), phone:nz(f.phone) };
     if (admin||tman) patch.is_team_lead = $('#td-lead').checked; if (admin && !self) patch.role = $('#td-role').value;
@@ -2418,7 +2418,7 @@ async function techDetail(s){
   $('#td-act').onclick = async () => { try { await q(sb.rpc('admin_set_active',{p_user:p.id,p_active:!p.active})); await done(p.active?'ปิดใช้งานบัญชีแล้ว':'เปิดใช้งานบัญชีแล้ว'); } catch(err){ fail(err); } };
   $('#td-del').onclick = () => { $('#td-delbox').hidden=false; };
   $('#td-delno').onclick = () => { $('#td-delbox').hidden=true; };
-  $('#td-delgo').onclick = async () => { try { const {data:r} = await q(sb.rpc('admin_delete_user',{p_user:p.id})); await done(r==='deleted'?'ลบผู้ใช้แล้ว':'ผู้ใช้นี้มีประวัติงาน ระบบปิดใช้งานบัญชีแทนการลบ'); } catch(err){ fail(err); } };
+  $('#td-delgo').onclick = async () => { try { const {data:r} = await q(sb.rpc('admin_delete_user',{p_user:p.id})); await done(r==='deleted'?'ลบผู้ใช้แล้ว':'ลบออกจากรายชื่อแล้ว (เก็บประวัติงานเดิมไว้ เข้าสู่ระบบไม่ได้อีก)'); } catch(err){ fail(err); } };
 }
 
 /* ============ CALENDAR ============ */
@@ -3326,7 +3326,7 @@ PAGES.settings = async () => {
   else if (settingsTab==='users') await usersPage(B);
 };
 
-const userFilter = { term:'', role:'', st:'' };
+const userFilter = { term:'', role:'', st:'on' };
 async function usersPage(B){
   const again = () => PAGES.settings().catch(fail);
   const [{data:people},{data:auth},{data:perms},{data:open}] = await Promise.all([
@@ -3340,7 +3340,7 @@ async function usersPage(B){
   const rows = people.filter(p=>(!f.role||p.role===f.role) && (!f.st||(f.st==='on'?p.active:!p.active))
     && (!f.term || [p.username,p.full_name,A[p.id]?.email,p.position].some(v=>(v||'').toLowerCase().includes(f.term.toLowerCase()))));
   const RC = { admin:'st-cancelled-bad', manager:'st-in_progress', supervisor:'st-assigned', technician:'st-new', reporter:'st-closed' };
-  const roleCount = r => people.filter(p=>p.role===r).length;
+  const roleCount = r => people.filter(p=>p.role===r && p.active).length;
   const pr = new Set(perms.filter(x=>x.role===permRole).map(x=>x.perm));
   const strayApprove = [...new Set(perms.filter(x=>x.perm==='wo.approve' && !VERIFY_ROLES.includes(x.role)).map(x=>x.role))];
   B.innerHTML = `
@@ -3355,8 +3355,8 @@ async function usersPage(B){
     <div class="pm-filters uf">
       <label class="field"><span>ค้นหา</span><input class="input" id="uf-term" placeholder="ชื่อผู้ใช้ / ชื่อ / อีเมล" value="${esc(f.term)}"></label>
       <label class="field"><span>บทบาท</span><select class="input" id="uf-role"><option value="">ทั้งหมด</option>${ROLE_ORDER.map(r=>`<option value="${r}" ${r===f.role?'selected':''}>${ROLE[r]}</option>`).join('')}</select></label>
-      <label class="field"><span>สถานะ</span><select class="input" id="uf-st"><option value="">ทั้งหมด</option><option value="on" ${f.st==='on'?'selected':''}>ใช้งาน</option><option value="off" ${f.st==='off'?'selected':''}>ปิดใช้งาน</option></select></label>
-      ${f.term||f.role||f.st?'<button class="btn" id="uf-clear" style="align-self:end">ล้างตัวกรอง</button>':''}
+      <label class="field"><span>สถานะ</span><select class="input" id="uf-st"><option value="" ${f.st===''?'selected':''}>ทั้งหมด</option><option value="on" ${f.st==='on'?'selected':''}>ใช้งาน</option><option value="off" ${f.st==='off'?'selected':''}>ปิดใช้งาน / ลบแล้ว</option></select></label>
+      ${f.term||f.role||f.st!=='on'?'<button class="btn" id="uf-clear" style="align-self:end">ล้างตัวกรอง</button>':''}
     </div>
     <div class="tbl-wrap"><table class="compact"><thead><tr><th>ชื่อผู้ใช้</th><th>ชื่อ-นามสกุล</th><th>ตำแหน่ง</th><th>บทบาท</th><th>ทีม</th><th>อีเมล</th><th class="num">งานค้าง</th><th>ล็อกอินล่าสุด</th><th>สถานะ</th><th></th></tr></thead><tbody>
     ${rows.map(p=>{ const a=A[p.id]; const internal=(a?.email||'').endsWith('@mms.internal'); return `<tr class="${p.active?'':'is-off'}">
@@ -3379,7 +3379,7 @@ async function usersPage(B){
   let tm; $('#uf-term').oninput=e=>{ clearTimeout(tm); tm=setTimeout(()=>{ f.term=e.target.value.trim(); again().then(()=>{ const i=$('#uf-term'); if(i){ i.focus(); i.setSelectionRange(i.value.length,i.value.length);} }); },300); };
   $('#uf-role').onchange=e=>{ f.role=e.target.value; again(); };
   $('#uf-st').onchange=e=>{ f.st=e.target.value; again(); };
-  if ($('#uf-clear')) $('#uf-clear').onclick=()=>{ Object.assign(f,{term:'',role:'',st:''}); again(); };
+  if ($('#uf-clear')) $('#uf-clear').onclick=()=>{ Object.assign(f,{term:'',role:'',st:'on'}); again(); };
   $('#uAdd').onclick=()=>techForm();
   $('#uImp').onclick=()=>userImport(people, again);
   $$('[data-uedit]').forEach(b=>b.onclick=()=>{ const p=people.find(x=>x.id===b.dataset.uedit); techDetail({p,open:openBy[p.id]||0,over:0,done30:0,mttr:null}); });
