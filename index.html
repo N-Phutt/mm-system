@@ -640,7 +640,7 @@ table.compact td{white-space:nowrap}
 /* ============ CONFIG ============ */
 const SB_URL = 'https://jtfeumjnqzozlmqlpcio.supabase.co';
 const SB_KEY = 'sb_publishable_m33nyCNfh5nKma5LxgV85g_ZLeQa052';
-const APP_VERSION = '1.4.5';
+const APP_VERSION = '1.5.0';
 const TZ = 'Asia/Bangkok';
 
 const sb = supabase.createClient(SB_URL, SB_KEY, { auth: { persistSession: true, autoRefreshToken: true } });
@@ -649,8 +649,16 @@ const sb = supabase.createClient(SB_URL, SB_KEY, { auth: { persistSession: true,
 const S = { session:null, profile:null, teams:[], people:[], parts:[], locations:[], route:'dashboard' };
 const STATUS = { new:'ใหม่', assigned:'มอบหมายแล้ว', in_progress:'กำลังซ่อม', on_hold:'พักงาน/รออะไหล่', done:'รอตรวจรับ', closed:'ปิดงานแล้ว', cancelled:'ยกเลิก' };
 const PRIO = { urgent:'ด่วนมาก', high:'สูง', medium:'ปานกลาง', low:'ต่ำ' };
-const ROLE = { admin:'ผู้ดูแลระบบ', manager:'เมเนเจอร์', supervisor:'หัวหน้าทีมช่าง', engineer:'วิศวกร', technician:'ช่างเทคนิค', reporter:'ผู้แจ้งซ่อม' };
-const ROLE_ORDER = ['admin','manager','supervisor','engineer','technician','reporter'];
+const ROLE = { admin:'ผู้ดูแลระบบ', manager:'Senior Engineer', engineer:'Engineer', supervisor:'Leader Technician', technician:'Technician', reporter:'Store control office (Admin)' };
+const ROLE_ORDER = ['admin','manager','engineer','supervisor','technician','reporter'];
+// สิทธิ์มาตรฐานตามตำแหน่ง (กดใช้ได้ที่ Settings → ผู้ใช้งานและสิทธิ์)
+const ROLE_PRESET = {
+  manager:   ['dashboard.view','asset.view','asset.manage','calendar.view','part.view','part.manage','pm.view','pm.manage','report.view','tech.view','tech.manage','wo.view','wo.create','wo.edit','wo.assign','wo.approve','wo.close'],
+  engineer:  ['dashboard.view','asset.view','asset.manage','calendar.view','part.view','pm.view','pm.manage','report.view','tech.view','wo.view','wo.create','wo.edit','wo.assign','wo.approve','wo.close'],
+  supervisor:['dashboard.view','asset.view','calendar.view','part.view','pm.view','report.view','tech.view','wo.view','wo.create','wo.edit','wo.assign'],
+  technician:['dashboard.view','asset.view','calendar.view','part.view','pm.view','wo.view','wo.create','wo.edit'],
+  reporter:  ['dashboard.view','asset.view','calendar.view','part.view','part.manage','report.view','wo.view','wo.create'],
+};
 const SOURCE = { qr:'QR', manual:'แจ้งในระบบ', pm:'PM', portal:'พอร์ทัล' };
 const RECUR = { daily:'ทุกวัน', weekly:'ทุกสัปดาห์', monthly:'ทุกเดือน', quarterly:'ทุกไตรมาส', yearly:'ทุกปี', custom_days:'กำหนดจำนวนวัน' };
 const OPEN = ['new','assigned','in_progress','on_hold'];
@@ -660,8 +668,8 @@ const $ = (s, el=document) => el.querySelector(s);
 const $$ = (s, el=document) => [...el.querySelectorAll(s)];
 const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const role = () => S.profile?.role;
-// ตรวจรับ/ปิดงานซ่อม: เฉพาะผู้ดูแลระบบและวิศวกรเท่านั้น (ไม่ขึ้นกับตารางสิทธิ์)
-const VERIFY_ROLES = ['admin','engineer'];
+// ตรวจรับ/ปิดงานซ่อม: เฉพาะผู้ดูแลระบบ, Senior Engineer และ Engineer (ไม่ขึ้นกับตารางสิทธิ์)
+const VERIFY_ROLES = ['admin','manager','engineer'];
 const can = p => p==='wo.approve' ? VERIFY_ROLES.includes(role()) : (role()==='admin' || !!S.perms?.has(p));
 const isMgr = () => can('wo.assign');
 const isTech = () => can('wo.edit') && !can('wo.view');
@@ -1026,7 +1034,7 @@ function bindEquipCombo(id, onPick){
 const locLabel = l => l ? [l.name, l.building&&('อาคาร '+l.building), l.floor&&('ชั้น '+l.floor)].filter(Boolean).join(' · ') : '–';
 const locOptions = sel => `<option value="">– ไม่ระบุ –</option>`+S.locations.filter(l=>l.active!==false||l.id===sel).map(l=>`<option value="${l.id}" ${l.id===sel?'selected':''}>${esc(locLabel(l))}</option>`).join('');
 const teamOptions = (sel, empty='– ไม่ระบุทีม –') => `<option value="">${empty}</option>`+S.teams.filter(t=>t.active!==false||t.id===sel).map(t=>`<option value="${t.id}" ${t.id===sel?'selected':''}>${esc(t.name)}</option>`).join('');
-const techOptions = (sel, teamId) => `<option value="">– ยังไม่มอบหมาย –</option>`+S.people.filter(p=>p.active&&['technician','supervisor','manager','admin'].includes(p.role)).sort((a,b)=>(b.team_id===teamId)-(a.team_id===teamId)).map(p=>`<option value="${p.id}" ${p.id===sel?'selected':''}>${esc(p.full_name)} (${ROLE[p.role]}${p.team_id?' · '+esc(S.teams.find(t=>t.id===p.team_id)?.name||''):''})</option>`).join('');
+const techOptions = (sel, teamId) => `<option value="">– ยังไม่มอบหมาย –</option>`+S.people.filter(p=>p.active&&['technician','supervisor','engineer','manager','admin'].includes(p.role)).sort((a,b)=>(b.team_id===teamId)-(a.team_id===teamId)).map(p=>`<option value="${p.id}" ${p.id===sel?'selected':''}>${esc(p.full_name)} (${ROLE[p.role]}${p.team_id?' · '+esc(S.teams.find(t=>t.id===p.team_id)?.name||''):''})</option>`).join('');
 const prioOptions = sel => Object.entries(PRIO).map(([k,v])=>`<option value="${k}" ${k===sel?'selected':''}>${v}</option>`).join('');
 
 /* ============ DASHBOARD ============ */
@@ -2290,11 +2298,11 @@ function techForm(){
 // ---- นำเข้ารายชื่อพนักงานจาก Excel / วางจากตาราง → สร้างบัญชี + กำหนดบทบาทตามตำแหน่ง ----
 function roleFromPosition(pos){
   const t = String(pos||'').toLowerCase();
-  if (/(avp|vice president|manager|ผู้จัดการ|เมเนเจอร์)/.test(t)) return 'manager';
+  if (/(senior engineer|sr\.? ?engineer|avp|vice president|manager|ผู้จัดการ|เมเนเจอร์|วิศวกรอาวุโส)/.test(t)) return 'manager';
   if (/engineer|วิศวกร/.test(t)) return 'engineer';
+  if (/(store|สโตร์|คลัง|admin|clerk|ธุรการ|officer)/.test(t)) return 'reporter';
   if (/(leader|shift lead|supervisor|หัวหน้า)/.test(t)) return 'supervisor';
-  if (/(technician|ช่าง|store|สโตร์)/.test(t)) return 'technician';
-  if (/(admin|clerk|ธุรการ|officer)/.test(t)) return 'reporter';
+  if (/(technician|ช่าง)/.test(t)) return 'technician';
   return 'technician';
 }
 function genPassword(){ const a='abcdefghjkmnpqrstuvwxyz', d='23456789'; const r=n=>crypto.getRandomValues(new Uint32Array(1))[0]%n;
@@ -2308,7 +2316,7 @@ function userImport(people, after){
     <section class="card">
       <label class="field"><span>เลือกไฟล์ Excel รายชื่อพนักงาน</span><input type="file" class="input" id="ui-file" accept=".xlsx,.xls,.csv"></label>
       <label class="field"><span>หรือคัดลอกแถวจาก Excel (รวมแถวหัวตาราง) แล้ววางที่นี่</span><textarea class="input" id="ui-paste" rows="4" placeholder="Name (Eng)&#9;Employee ID&#9;Name (Thai)&#9;Nick Name&#9;Nick Name (Thai)&#9;Position&#9;Phone Number&#9;Email"></textarea></label>
-      <div class="note small">ตำแหน่ง → บทบาท: Manager/AVP → ${ROLE.manager} · Senior Engineer/Engineer → ${ROLE.engineer} · Leader Technician/Leader Shift → ${ROLE.supervisor} · Technician/Store → ${ROLE.technician} · Admin → ${ROLE.reporter}<br>ชื่อผู้ใช้ = รหัสพนักงาน · รหัสผ่านเริ่มต้นสุ่มให้แต่ละคน และดาวน์โหลดเป็นไฟล์ได้หลังสร้างเสร็จ</div>
+      <div class="note small">ตำแหน่ง → บทบาท: Senior Engineer → ${ROLE.manager} · Engineer → ${ROLE.engineer} · Leader Technician / Leader Shift → ${ROLE.supervisor} · Technician → ${ROLE.technician} · Store control office / Admin → ${ROLE.reporter}<br>ชื่อผู้ใช้ = รหัสพนักงาน · รหัสผ่านเริ่มต้นสุ่มให้แต่ละคน และดาวน์โหลดเป็นไฟล์ได้หลังสร้างเสร็จ</div>
     </section>
     <section class="card" id="ui-prev" hidden></section>`);
   const fromGrid = grid => {
@@ -3083,7 +3091,7 @@ const PERM_GROUPS = [
   ['รายงาน', [['report.view','ดูรายงาน']]],
   ['ระบบ', [['user.manage','จัดการผู้ใช้งานและสิทธิ์'],['setting.manage','ตั้งค่าระบบ']]],
   ['ช่างเทคนิค', [['tech.view','ดูข้อมูลช่าง'],['tech.manage','จัดการข้อมูลช่าง']]],
-  ['ใบงาน', [['wo.view','ดูใบงานทั้งหมด'],['wo.create','สร้าง/แจ้งซ่อม'],['wo.edit','รับงานและบันทึกการซ่อม'],['wo.assign','มอบหมายงาน'],['wo.approve','ตรวจรับงาน / ส่งกลับแก้ไข (Engineer)'],['wo.close','ปิดงาน/ยกเลิกใบงาน'],['wo.delete','ลบใบงาน']]],
+  ['ใบงาน', [['wo.view','ดูใบงานทั้งหมด'],['wo.create','สร้าง/แจ้งซ่อม'],['wo.edit','รับงานและบันทึกการซ่อม'],['wo.assign','มอบหมายงาน'],['wo.approve','ตรวจรับงาน / ส่งกลับแก้ไข (Senior Engineer / Engineer)'],['wo.close','ปิดงาน/ยกเลิกใบงาน'],['wo.delete','ลบใบงาน']]],
 ];
 PAGES.settings = async () => {
   const canSet = can('setting.manage'), canUsers = can('user.manage');
@@ -3342,10 +3350,10 @@ async function usersPage(B){
   <section class="card">
     <div class="card-head"><div><h2>สิทธิ์ตามบทบาท</h2><p class="small muted" style="margin:4px 0 0">กำลังแก้ไขสิทธิ์ของบทบาท <b style="color:var(--accent)">${ROLE[permRole]}</b> — มีผู้ใช้ ${roleCount(permRole)} คน</p></div>
       <div class="row">${ROLE_ORDER.map(r=>`<button class="qchip ${permRole===r?'on':''}" data-prole="${r}">${ROLE[r]} <b>${roleCount(r)}</b></button>`).join('')}</div></div>
-    ${strayApprove.length?`<div class="note warn row" style="justify-content:space-between">บทบาท ${strayApprove.map(r=>ROLE[r]).join(', ')} ยังมีสิทธิ์ตรวจรับงานค้างอยู่ในฐานข้อมูล — ตามนโยบาย ให้เฉพาะผู้ดูแลระบบและวิศวกรเท่านั้น<button class="btn sm primary" id="permFixApprove">นำสิทธิ์ตรวจรับออก</button></div>`:''}
+    ${strayApprove.length?`<div class="note warn row" style="justify-content:space-between">บทบาท ${strayApprove.map(r=>ROLE[r]).join(', ')} ยังมีสิทธิ์ตรวจรับงานค้างอยู่ในฐานข้อมูล — ตามนโยบาย ให้เฉพาะผู้ดูแลระบบ, Senior Engineer และ Engineer<button class="btn sm primary" id="permFixApprove">นำสิทธิ์ตรวจรับออก</button></div>`:''}
     ${permRole==='admin'?'<div class="note">ผู้ดูแลระบบมีสิทธิ์ทั้งหมดเสมอ และแก้ไขไม่ได้ เพื่อป้องกันไม่ให้ระบบไม่มีผู้ดูแล</div>':''}
-    <div class="perm-grid">${PERM_GROUPS.map(([g,list])=>`<div class="perm-box"><h3>${g}</h3>${list.map(([k,l])=>`<label class="perm-row"><span class="check"><input type="checkbox" data-perm="${k}" ${k==='wo.approve' ? (VERIFY_ROLES.includes(permRole)?'checked':'') : (permRole==='admin'||pr.has(k)?'checked':'')} ${permRole==='admin'||k==='wo.approve'?'disabled':''}> ${l}${k==='wo.approve'?' <span class="small muted">— ล็อกไว้: เฉพาะผู้ดูแลระบบและวิศวกร</span>':''}</span><code>${k}</code></label>`).join('')}</div>`).join('')}</div>
-    ${permRole!=='admin'?`<div class="row"><button class="btn primary" id="permSave">${svgI('check')} บันทึกสิทธิ์ของบทบาทนี้</button><span class="small muted">มีผลทันทีกับผู้ใช้ในบทบาทนี้ (ผู้ใช้ต้องรีเฟรชหน้าเว็บ)</span></div>`:''}
+    <div class="perm-grid">${PERM_GROUPS.map(([g,list])=>`<div class="perm-box"><h3>${g}</h3>${list.map(([k,l])=>`<label class="perm-row"><span class="check"><input type="checkbox" data-perm="${k}" ${k==='wo.approve' ? (VERIFY_ROLES.includes(permRole)?'checked':'') : (permRole==='admin'||pr.has(k)?'checked':'')} ${permRole==='admin'||k==='wo.approve'?'disabled':''}> ${l}${k==='wo.approve'?' <span class="small muted">— ล็อกไว้: เฉพาะผู้ดูแลระบบ, Senior Engineer และ Engineer</span>':''}</span><code>${k}</code></label>`).join('')}</div>`).join('')}</div>
+    ${permRole!=='admin'?`<div class="row"><button class="btn" id="permPreset">${svgI('check')} ใช้สิทธิ์มาตรฐานของทุกตำแหน่ง</button><button class="btn primary" id="permSave">${svgI('check')} บันทึกสิทธิ์ของบทบาทนี้</button><span class="small muted">มีผลทันทีกับผู้ใช้ในบทบาทนี้ (ผู้ใช้ต้องรีเฟรชหน้าเว็บ)</span></div>`:''}
   </section>`;
   let tm; $('#uf-term').oninput=e=>{ clearTimeout(tm); tm=setTimeout(()=>{ f.term=e.target.value.trim(); again().then(()=>{ const i=$('#uf-term'); if(i){ i.focus(); i.setSelectionRange(i.value.length,i.value.length);} }); },300); };
   $('#uf-role').onchange=e=>{ f.role=e.target.value; again(); };
@@ -3361,6 +3369,9 @@ async function usersPage(B){
   if ($('#permFixApprove')) $('#permFixApprove').onclick=async()=>{ try {
       for (const r of strayApprove) await q(sb.rpc('set_role_permissions',{p_role:r,p_perms:perms.filter(x=>x.role===r && x.perm!=='wo.approve').map(x=>x.perm)}));
       toast('นำสิทธิ์ตรวจรับงานออกจาก '+strayApprove.map(r=>ROLE[r]).join(', ')+' แล้ว'); again(); } catch(err){ fail(err); } };
+  if ($('#permPreset')) $('#permPreset').onclick=async()=>{ try {
+      for (const [r,list] of Object.entries(ROLE_PRESET)) await q(sb.rpc('set_role_permissions',{p_role:r,p_perms:list}));
+      toast('ตั้งสิทธิ์มาตรฐานให้ทุกตำแหน่งแล้ว (ผู้ใช้ต้องรีเฟรชหน้าเว็บ)'); again(); } catch(err){ fail(err); } };
   if ($('#permSave')) $('#permSave').onclick=async()=>{ const list=$$('[data-perm]').filter(i=>i.checked).map(i=>i.dataset.perm);
     try { await q(sb.rpc('set_role_permissions',{p_role:permRole,p_perms:list})); toast(`บันทึกสิทธิ์ของ ${ROLE[permRole]} แล้ว`); again(); } catch(err){ fail(err); } };
 }
