@@ -59,7 +59,7 @@ button,input,select,textarea{font:inherit;color:inherit}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 
 /* ---------- login ---------- */
-.login{min-height:100vh;min-height:100dvh;display:grid;grid-template-columns:1.1fr 1fr}
+.login{min-height:calc(100vh / var(--z,1));min-height:calc(100dvh / var(--z,1));display:grid;grid-template-columns:1.1fr 1fr}
 .login-art{background:var(--side);color:var(--side-ink);padding:48px clamp(24px,5vw,64px);display:flex;flex-direction:column;justify-content:space-between;gap:32px;position:relative;overflow:hidden}
 .login-art::after{content:"";position:absolute;left:0;right:0;bottom:0;height:10px;background:repeating-linear-gradient(-45deg,var(--hazard) 0 14px,var(--side) 14px 28px)}
 .login-art h1{color:#fff;font-size:clamp(26px,3.4vw,38px);font-weight:700;max-width:16ch}
@@ -76,7 +76,7 @@ button,input,select,textarea{font:inherit;color:inherit}
 
 /* ---------- shell ---------- */
 .app{display:grid;grid-template-columns:232px 1fr;min-height:100%}
-.side{background:var(--side);color:var(--side-ink);display:flex;flex-direction:column;gap:20px;padding:20px 12px;position:sticky;top:0;height:100vh}
+.side{background:var(--side);color:var(--side-ink);display:flex;flex-direction:column;gap:20px;padding:20px 12px;position:sticky;top:0;height:calc(100vh / var(--z,1))}
 .side .brand{padding:0 8px}
 .nav{display:grid;gap:2px;align-content:start;flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;margin:0 -4px;padding:0 4px;scrollbar-width:thin;scrollbar-color:#2C5A5E transparent}
 .nav::-webkit-scrollbar{width:6px}.nav::-webkit-scrollbar-thumb{background:#2C5A5E;border-radius:3px}
@@ -273,7 +273,9 @@ table.rep tr.tot td{font-weight:600;background:var(--surface-2)}
 @media (max-width:1100px){.tech-layout{grid-template-columns:1fr}.kpis.k4{grid-template-columns:repeat(2,minmax(0,1fr))}.pm-filters.tf{grid-template-columns:1fr 1fr}}
 
 .foot-bar{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:14px 24px calc(14px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--line);color:var(--ink-3);margin-top:auto}
-.main{min-height:100vh}
+.main{min-height:calc(100vh / var(--z,1))}
+.zoom-btn{font-size:11px;font-weight:700;letter-spacing:-.02em}
+@media (max-width:860px){.zoom-btn{display:none}}
 .bell-wrap{position:relative}
 .bell-wrap .icon-btn{position:relative}
 .bell-n{position:absolute;top:-5px;right:-6px;background:var(--bad);color:#fff;border-radius:99px;font:600 10px/16px var(--mono);min-width:16px;padding:0 4px;text-align:center}
@@ -487,7 +489,7 @@ body.tv .mt{font-size:12px;min-height:58px}
 /* kanban */
 .kb-wrap{overflow-x:auto;padding-bottom:6px}
 .kb{display:grid;grid-template-columns:repeat(5,minmax(250px,1fr));gap:12px;min-width:1300px;align-items:start}
-.kcol{background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r);display:grid;grid-template-rows:auto 1fr;max-height:calc(100vh - 230px);min-height:300px;border-top:4px solid var(--line)}
+.kcol{background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r);display:grid;grid-template-rows:auto 1fr;max-height:calc(100vh / var(--z,1) - 230px);min-height:300px;border-top:4px solid var(--line)}
 .kcol-new{border-top-color:var(--info)}.kcol-assigned{border-top-color:var(--accent)}.kcol-in_progress{border-top-color:var(--hazard)}.kcol-on_hold{border-top-color:var(--ink-3)}.kcol-done{border-top-color:var(--ok)}
 .kcol.over{background:var(--accent-soft);border-color:var(--accent)}
 .kcol-h{display:flex;justify-content:space-between;padding:10px 12px;border-bottom:1px solid var(--line)}
@@ -637,7 +639,7 @@ table.compact td{white-space:nowrap}
 /* ============ CONFIG ============ */
 const SB_URL = 'https://jtfeumjnqzozlmqlpcio.supabase.co';
 const SB_KEY = 'sb_publishable_m33nyCNfh5nKma5LxgV85g_ZLeQa052';
-const APP_VERSION = '1.4.0';
+const APP_VERSION = '1.4.1';
 const TZ = 'Asia/Bangkok';
 
 const sb = supabase.createClient(SB_URL, SB_KEY, { auth: { persistSession: true, autoRefreshToken: true } });
@@ -793,6 +795,28 @@ function renderLogin(msg=''){
 }
 
 try { const th = localStorage.getItem('emm.theme'); if (th) document.documentElement.dataset.theme = th; } catch {}
+// ---- พอดีจอ: ย่อ/ขยายทั้งหน้าตามขนาดจอ (อัตโนมัติ หรือเลือกเอง) ----
+const ZOOM_OK = typeof CSS!=='undefined' && CSS.supports && CSS.supports('zoom','1');
+const ZOOM_STEPS = ['auto', 0.8, 0.9, 1, 1.1];
+let zoomPref = 'auto';
+try { const z = localStorage.getItem('emm.zoom'); if (z && z!=='auto' && ZOOM_STEPS.includes(+z)) zoomPref = +z; } catch {}
+function autoZoom(){
+  const w = window.innerWidth, h = window.innerHeight;
+  if (w < 861) return 1;
+  if (h < 760 || w < 1400) return 0.85;
+  if (h < 900 || w < 1680) return 0.9;
+  return 1;
+}
+function applyZoom(){
+  if (!ZOOM_OK) return;
+  const z = window.innerWidth < 861 ? 1 : (zoomPref==='auto' ? autoZoom() : zoomPref);
+  const el = document.documentElement;
+  el.style.zoom = z===1 ? '' : String(z);
+  el.style.setProperty('--z', String(z));
+}
+applyZoom();
+let zoomRaf = 0;
+window.addEventListener('resize', () => { cancelAnimationFrame(zoomRaf); zoomRaf = requestAnimationFrame(applyZoom); });
 let booting = false;
 async function boot(){
   if (booting) return;
@@ -871,6 +895,7 @@ function renderShell(){
         <div class="grow crumb-wrap"><b id="crumb"></b><small id="crumb2"></small></div>
         <form class="gsearch" id="gSearch" role="search"><span>${svgI('search')}</span><input id="gq" placeholder="ค้นหาใบงาน หรืออุปกรณ์" aria-label="ค้นหา"></form>
         ${seesWork()||can('part.view')?`<div class="bell-wrap"><button class="icon-btn" id="bellBtn" aria-label="การแจ้งเตือน" title="การแจ้งเตือน">${svgI('bell')}<span class="bell-n" id="bellCount" hidden></span></button><div class="bell-panel" id="bellPanel" hidden></div></div>`:''}
+        ${ZOOM_OK?`<button class="icon-btn zoom-btn" id="zoomBtn" aria-label="ขนาดการแสดงผล" title="ขนาดการแสดงผล (คลิกเพื่อเปลี่ยน)"></button>`:''}
         <button class="icon-btn" id="themeBtn" aria-label="สลับโหมดสว่าง/มืด" title="สลับโหมดสว่าง/มืด"></button>
         <span class="small muted" id="clock"></span>
       </header>
@@ -891,6 +916,14 @@ function renderShell(){
   $('#themeBtn').onclick = () => { const dark = document.documentElement.dataset.theme ? document.documentElement.dataset.theme==='dark' : matchMedia('(prefers-color-scheme: dark)').matches;
     document.documentElement.dataset.theme = dark?'light':'dark'; try { localStorage.setItem('emm.theme', document.documentElement.dataset.theme); } catch {} paintTheme(); };
   paintTheme();
+  const zb = $('#zoomBtn');
+  if (zb) {
+    const paintZoom = () => { zb.textContent = zoomPref==='auto' ? 'A' : Math.round(zoomPref*100)+''; zb.title = 'ขนาดการแสดงผล: ' + (zoomPref==='auto' ? 'อัตโนมัติ ('+Math.round((parseFloat(document.documentElement.style.getPropertyValue('--z'))||1)*100)+'%)' : Math.round(zoomPref*100)+'%') + ' — คลิกเพื่อเปลี่ยน'; };
+    zb.onclick = () => { zoomPref = ZOOM_STEPS[(ZOOM_STEPS.indexOf(zoomPref)+1) % ZOOM_STEPS.length];
+      try { localStorage.setItem('emm.zoom', String(zoomPref)); } catch {}
+      applyZoom(); paintZoom(); toast('ขนาดการแสดงผล: ' + (zoomPref==='auto' ? 'อัตโนมัติตามจอ' : Math.round(zoomPref*100)+'%')); };
+    paintZoom(); window.addEventListener('resize', paintZoom);
+  }
   if ($('#bellBtn')) { $('#bellBtn').onclick = e => { e.stopPropagation(); const p=$('#bellPanel'); p.hidden=!p.hidden; if (!p.hidden) paintBell(); };
     document.addEventListener('click', e => { const p=$('#bellPanel'); if (p && !p.hidden && !e.target.closest('.bell-wrap')) p.hidden=true; });
     clearInterval(alertTimer); refreshAlerts(); alertTimer = setInterval(refreshAlerts, 120000); }
