@@ -655,7 +655,7 @@ table.compact td{white-space:nowrap}
 /* ============ CONFIG ============ */
 const SB_URL = 'https://jtfeumjnqzozlmqlpcio.supabase.co';
 const SB_KEY = 'sb_publishable_m33nyCNfh5nKma5LxgV85g_ZLeQa052';
-const APP_VERSION = '1.6.1';
+const APP_VERSION = '1.6.2';
 const TZ = 'Asia/Bangkok';
 
 const sb = supabase.createClient(SB_URL, SB_KEY, { auth: { persistSession: true, autoRefreshToken: true } });
@@ -906,7 +906,7 @@ const NAV = [
   ['tech','Technician', ()=>can('tech.view')||can('tech.manage')],
   ['calendar','Calendar', ()=>can('calendar.view')],
   ['reports','Reports', ()=>can('report.view')],
-  ['users','บัญชีผู้ใช้งาน', ()=>can('user.manage')],
+  ['users','บัญชีผู้ใช้งาน', ()=>role()==='admin'],
   ['settings','Settings', ()=>can('setting.manage')],
 ];
 const CRUMB = { users:['จัดการบัญชีผู้ใช้งาน','User Accounts'], requests:['ติดตามงานที่แจ้ง','My Requests'], new:['สร้างใบงานใหม่','Create Work Order'], repair:['งานซ่อม','Corrective Maintenance'], wo:['ใบงานทั้งหมด','Work Orders'], dashboard:['ระบบบำรุงรักษาอุปกรณ์','Equipment Maintenance Dashboard'],
@@ -3380,7 +3380,7 @@ PAGES.settings = async () => {
 
 const userFilter = { term:'', role:'', st:'on' };
 PAGES.users = async () => {
-  if (!can('user.manage')) { $('#view').innerHTML = '<section class="card"><div class="empty">คุณไม่มีสิทธิ์จัดการบัญชีผู้ใช้</div></section>'; return; }
+  if (role()!=='admin') { $('#view').innerHTML = '<section class="card"><div class="empty">หน้านี้สำหรับผู้ดูแลระบบเท่านั้น</div></section>'; return; }
   $('#view').innerHTML = `<div class="page-head"><div><h1>จัดการบัญชีผู้ใช้งาน</h1><p>เพิ่ม ลบ แก้ไขบทบาท และตั้งรหัสผ่านให้ผู้ใช้ · กำหนดสิทธิ์ของแต่ละบทบาท</p></div></div><div id="usersBody"><div class="loading">กำลังโหลด…</div></div>`;
   await usersPage($('#usersBody'));
 };
@@ -3429,7 +3429,7 @@ async function usersPage(B, again = () => PAGES.users().catch(fail)){
       <div class="row">${ROLE_ORDER.map(r=>`<button class="qchip ${permRole===r?'on':''}" data-prole="${r}">${ROLE[r]} <b>${roleCount(r)}</b></button>`).join('')}</div></div>
     ${strayApprove.length?`<div class="note warn row" style="justify-content:space-between">บทบาท ${strayApprove.map(r=>ROLE[r]).join(', ')} ยังมีสิทธิ์ตรวจรับงานค้างอยู่ในฐานข้อมูล — ตามนโยบาย ให้เฉพาะผู้ดูแลระบบ, Senior Engineer และ Engineer<button class="btn sm primary" id="permFixApprove">นำสิทธิ์ตรวจรับออก</button></div>`:''}
     ${permRole==='admin'?'<div class="note">ผู้ดูแลระบบมีสิทธิ์ทั้งหมดเสมอ และแก้ไขไม่ได้ เพื่อป้องกันไม่ให้ระบบไม่มีผู้ดูแล</div>':''}
-    <div class="perm-grid">${PERM_GROUPS.map(([g,list])=>`<div class="perm-box"><h3>${g}</h3>${list.map(([k,l])=>`<label class="perm-row"><span class="check"><input type="checkbox" data-perm="${k}" ${k==='wo.approve' ? (VERIFY_ROLES.includes(permRole)?'checked':'') : (permRole==='admin'||pr.has(k)?'checked':'')} ${permRole==='admin'||k==='wo.approve'?'disabled':''}> ${l}${k==='wo.approve'?' <span class="small muted" title="ล็อกไว้: เฉพาะผู้ดูแลระบบ, Senior Engineer และ Engineer">🔒</span>':''}</span><code>${k}</code></label>`).join('')}</div>`).join('')}</div>
+    <div class="perm-grid">${PERM_GROUPS.map(([g,list])=>`<div class="perm-box"><h3>${g}</h3>${list.map(([k,l])=>`<label class="perm-row"><span class="check"><input type="checkbox" data-perm="${k}" ${k==='wo.approve' ? (VERIFY_ROLES.includes(permRole)?'checked':'') : k==='user.manage' ? (permRole==='admin'?'checked':'') : (permRole==='admin'||pr.has(k)?'checked':'')} ${permRole==='admin'||k==='wo.approve'||k==='user.manage'?'disabled':''}> ${l}${k==='user.manage'?' <span class="small muted" title="ล็อกไว้: เฉพาะผู้ดูแลระบบ">🔒</span>':''}${k==='wo.approve'?' <span class="small muted" title="ล็อกไว้: เฉพาะผู้ดูแลระบบ, Senior Engineer และ Engineer">🔒</span>':''}</span><code>${k}</code></label>`).join('')}</div>`).join('')}</div>
     ${permRole!=='admin'?`<div class="row"><button class="btn" id="permPreset">${svgI('check')} ใช้สิทธิ์มาตรฐานของทุกตำแหน่ง</button><button class="btn primary" id="permSave">${svgI('check')} บันทึกสิทธิ์ของบทบาทนี้</button><span class="small muted">มีผลทันทีกับผู้ใช้ในบทบาทนี้ (ผู้ใช้ต้องรีเฟรชหน้าเว็บ)</span></div>`:''}
   </section>`;
   let tm; $('#uf-term').oninput=e=>{ clearTimeout(tm); tm=setTimeout(()=>{ f.term=e.target.value.trim(); again().then(()=>{ const i=$('#uf-term'); if(i){ i.focus(); i.setSelectionRange(i.value.length,i.value.length);} }); },300); };
