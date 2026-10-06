@@ -655,7 +655,7 @@ table.compact td{white-space:nowrap}
 /* ============ CONFIG ============ */
 const SB_URL = 'https://jtfeumjnqzozlmqlpcio.supabase.co';
 const SB_KEY = 'sb_publishable_m33nyCNfh5nKma5LxgV85g_ZLeQa052';
-const APP_VERSION = '1.6.0';
+const APP_VERSION = '1.6.1';
 const TZ = 'Asia/Bangkok';
 
 const sb = supabase.createClient(SB_URL, SB_KEY, { auth: { persistSession: true, autoRefreshToken: true } });
@@ -766,6 +766,8 @@ Object.assign(ICON,{
   new:'<path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18v3h3l6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.4-.6-.6-2.4z"/>',
   plus:'<path d="M12 5v14M5 12h14"/>',
   tech:'<circle cx="9" cy="8" r="4"/><path d="M2 21c0-4 3-6 7-6s7 2 7 6M17 11l2 2 4-4"/>',
+  users:'<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-5.8 6.5-5.8s6.5 2.2 6.5 5.8"/><circle cx="17" cy="9" r="2.6"/><path d="M16.5 14.3c3 .1 5 1.9 5 4.7"/>',
+  requests:'<rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1M9 11l1.5 1.5L13 10M9 16h6"/>',
   calendar:'<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/>',
   reports:'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
   sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
@@ -904,9 +906,10 @@ const NAV = [
   ['tech','Technician', ()=>can('tech.view')||can('tech.manage')],
   ['calendar','Calendar', ()=>can('calendar.view')],
   ['reports','Reports', ()=>can('report.view')],
-  ['settings','Settings', ()=>can('setting.manage')||can('user.manage')],
+  ['users','บัญชีผู้ใช้งาน', ()=>can('user.manage')],
+  ['settings','Settings', ()=>can('setting.manage')],
 ];
-const CRUMB = { requests:['ติดตามงานที่แจ้ง','My Requests'], new:['สร้างใบงานใหม่','Create Work Order'], repair:['งานซ่อม','Corrective Maintenance'], wo:['ใบงานทั้งหมด','Work Orders'], dashboard:['ระบบบำรุงรักษาอุปกรณ์','Equipment Maintenance Dashboard'],
+const CRUMB = { users:['จัดการบัญชีผู้ใช้งาน','User Accounts'], requests:['ติดตามงานที่แจ้ง','My Requests'], new:['สร้างใบงานใหม่','Create Work Order'], repair:['งานซ่อม','Corrective Maintenance'], wo:['ใบงานทั้งหมด','Work Orders'], dashboard:['ระบบบำรุงรักษาอุปกรณ์','Equipment Maintenance Dashboard'],
   pm:['แผนบำรุงรักษาเชิงป้องกัน','Preventive Maintenance Plan'], equipment:['ทะเบียนอุปกรณ์','Asset & Equipment'], parts:['อะไหล่คงคลัง','Spare Parts Inventory'], tech:['ช่างซ่อมบำรุง','Technicians'],
   calendar:['ปฏิทินงาน','Maintenance Calendar'], my:['งานของฉัน','My Jobs'], verify:['ตรวจรับงานซ่อม','Engineer Verification'], kanban:['บอร์ดใบงาน','Kanban Board'], board:['ผังสถานะเครื่องจักร','Plant Status Board'], asset:['รายละเอียดเครื่อง','Asset Detail'], reports:['รายงาน','Reports'], settings:['ตั้งค่าระบบ','Settings'] };
 function renderShell(){
@@ -2453,7 +2456,7 @@ async function techDetail(s){
     </section>`:''}
     <section class="card"><h3>งานในมือ (${wos.length})</h3>${woTable(wos,false)}</section>`;
   bindWoRows();
-  const done = async msg => { await loadRefs(); toast(msg); closePanel(); (location.hash.startsWith('#settings') ? PAGES.settings() : PAGES.tech()).catch(fail); };
+  const done = async msg => { await loadRefs(); toast(msg); closePanel(); (S.route==='users' ? PAGES.users() : location.hash.startsWith('#settings') ? PAGES.settings() : PAGES.tech()).catch(fail); };
   $('#tdForm').onsubmit = async e => { e.preventDefault(); const f=formData(e.target);
     const patch = { full_name:f.full_name, position:nz(f.position), team_id:nz(f.team_id), phone:nz(f.phone) };
     if (admin||tman) patch.is_team_lead = $('#td-lead').checked; if (admin && !self) patch.role = $('#td-role').value;
@@ -3166,7 +3169,7 @@ const PERM_GROUPS = [
 PAGES.settings = async () => {
   const canSet = can('setting.manage'), canUsers = can('user.manage');
   if (!canSet && settingsTab!=='users') settingsTab = 'users';
-  const tabs = [['general','ทั่วไป','settings',canSet],['notify','การแจ้งเตือน','bell',canSet],['master','ข้อมูลหลัก','wo',canSet],['system','ข้อมูลระบบ','reports',canSet],['users','ผู้ใช้งานและสิทธิ์','tech',canUsers]].filter(t=>t[3]);
+  const tabs = [['general','ทั่วไป','settings',canSet],['notify','การแจ้งเตือน','bell',canSet],['master','ข้อมูลหลัก','wo',canSet],['system','ข้อมูลระบบ','reports',canSet]].filter(t=>t[3]);
   $('#view').innerHTML = `<section class="card set-tabs-card"><div class="set-tabs">${tabs.map(([k,v,i])=>`<button class="qchip ${settingsTab===k?'on':''}" data-stab="${k}">${svgI(i)} ${v}</button>`).join('')}</div></section><div id="setBody" class="set-body"><div class="loading">กำลังโหลด…</div></div>`;
   $$('[data-stab]').forEach(b=>b.onclick=()=>{ settingsTab=b.dataset.stab; PAGES.settings().catch(fail); });
   const saveKey = async (key, value, msg) => { await q(sb.from('app_settings').upsert({ key, value, updated_at:new Date().toISOString(), updated_by:uid() })); S.cfg[key] = { ...CFG_DEFAULT[key], ...value }; toast(msg||'บันทึกการตั้งค่าแล้ว'); };
@@ -3372,12 +3375,16 @@ PAGES.settings = async () => {
       downloadCsv(`spare-parts-${today()}.csv`, [['Part No','Item code','ชื่อ','รุ่น','สเปก','หมวด','หน่วย','คงเหลือ','Safety','Min','Max','Reorder point','ราคา/หน่วย','ที่เก็บ','ผู้จำหน่าย'], ...data.map(p=>[p.part_code,p.item_code,p.name,p.model,p.spec,p.category,p.unit,p.quantity_on_hand,p.safety_stock,p.min_qty,p.max_qty,p.reorder_point,p.unit_cost,p.storage_location,p.supplier])]); } catch(e){ fail(e); } };
   }
 
-  else if (settingsTab==='users') await usersPage(B);
+  else if (settingsTab==='users') { location.hash = '#users'; }
 };
 
 const userFilter = { term:'', role:'', st:'on' };
-async function usersPage(B){
-  const again = () => PAGES.settings().catch(fail);
+PAGES.users = async () => {
+  if (!can('user.manage')) { $('#view').innerHTML = '<section class="card"><div class="empty">คุณไม่มีสิทธิ์จัดการบัญชีผู้ใช้</div></section>'; return; }
+  $('#view').innerHTML = `<div class="page-head"><div><h1>จัดการบัญชีผู้ใช้งาน</h1><p>เพิ่ม ลบ แก้ไขบทบาท และตั้งรหัสผ่านให้ผู้ใช้ · กำหนดสิทธิ์ของแต่ละบทบาท</p></div></div><div id="usersBody"><div class="loading">กำลังโหลด…</div></div>`;
+  await usersPage($('#usersBody'));
+};
+async function usersPage(B, again = () => PAGES.users().catch(fail)){
   const [{data:people},{data:auth},{data:perms},{data:open}] = await Promise.all([
     q(sb.from('profiles').select('*').order('full_name')), q(sb.rpc('admin_list_users')), q(sb.from('role_permissions').select('*')),
     q(sb.from('work_orders').select('assigned_to').in('status',OPEN).not('assigned_to','is',null).limit(10000)) ]);
@@ -3414,7 +3421,7 @@ async function usersPage(B){
       <td class="small ${internal?'muted':''}">${internal?'–':esc(a?.email||'–')}</td><td class="num mono">${openBy[p.id]||0}</td>
       <td class="small">${a?.last_sign_in_at?fmtDT(a.last_sign_in_at):'<span class="muted">ยังไม่เคย</span>'}</td>
       <td><span class="pill ${p.active?'st-done':'st-closed'}">${p.active?'ใช้งาน':'ปิดใช้งาน'}</span></td>
-      <td><div class="acts"><button class="icon-btn" data-uedit="${p.id}" title="แก้ไขข้อมูลและสิทธิ์">${svgI('edit')}</button><button class="icon-btn" data-upw="${p.id}" title="ตั้งรหัสผ่านใหม่">${svgI('key')}</button></div></td></tr>`; }).join('')}
+      <td><div class="acts"><button class="icon-btn" data-uedit="${p.id}" title="แก้ไขข้อมูลและสิทธิ์">${svgI('edit')}</button><button class="icon-btn" data-upw="${p.id}" title="ตั้งรหัสผ่านใหม่">${svgI('key')}</button>${p.id===uid()?'':p.active?`<button class="icon-btn del" data-udel="${p.id}" title="ลบบัญชี">${svgI('trash')}</button>`:`<button class="icon-btn" data-uon="${p.id}" title="เปิดใช้งานอีกครั้ง">${svgI('check')}</button>`}</div></td></tr>`; }).join('')}
     </tbody></table></div>
   </section>
   <section class="card">
@@ -3432,6 +3439,14 @@ async function usersPage(B){
   $('#uAdd').onclick=()=>techForm();
   $('#uImp').onclick=()=>userImport(people, again);
   $$('[data-uedit]').forEach(b=>b.onclick=()=>{ const p=people.find(x=>x.id===b.dataset.uedit); techDetail({p,open:openBy[p.id]||0,over:0,done30:0,mttr:null}); });
+  $$('[data-udel]').forEach(b=>b.onclick=()=>{ const p=people.find(x=>x.id===b.dataset.udel);
+    openPanel('ลบบัญชีผู้ใช้', `${esc(p.full_name)} · <span class="mono">${esc(p.username)}</span>`, `<section class="card"><p>ต้องการลบบัญชี <b>${esc(p.full_name)}</b> (${ROLE[p.role]||p.role}) ใช่ไหม?</p>
+      <div class="note small">ถ้าบัญชีนี้เคยมีประวัติงานในระบบ จะถูกปิดใช้งานและซ่อนจากรายชื่อแทนการลบ เพื่อให้ใบงานเก่ายังแสดงชื่อผู้ซ่อม/ผู้ตรวจได้ · ผู้ใช้จะเข้าสู่ระบบไม่ได้อีก${openBy[p.id]?`<br><b>มีงานค้างในมือ ${openBy[p.id]} งาน</b> — ควรมอบหมายให้คนอื่นก่อน`:''}</div>
+      <div class="row"><button class="btn danger" id="udGo">${svgI('trash')} ยืนยันลบบัญชี</button><button class="btn" id="udNo">ยกเลิก</button></div></section>`);
+    $('#udNo').onclick=closePanel;
+    $('#udGo').onclick=async()=>{ $('#udGo').disabled=true; try { const {data:r}=await q(sb.rpc('admin_delete_user',{p_user:p.id})); await loadRefs().catch(()=>{}); closePanel();
+      toast(r==='deleted'?`ลบบัญชี ${p.username} แล้ว`:`ลบ ${p.username} ออกจากรายชื่อแล้ว (เก็บประวัติงานไว้)`); again(); } catch(err){ fail(err); $('#udGo').disabled=false; } }; });
+  $$('[data-uon]').forEach(b=>b.onclick=async()=>{ try { await q(sb.rpc('admin_set_active',{p_user:b.dataset.uon,p_active:true})); await loadRefs().catch(()=>{}); toast('เปิดใช้งานบัญชีอีกครั้งแล้ว'); again(); } catch(err){ fail(err); } });
   $$('[data-upw]').forEach(b=>b.onclick=()=>{ const p=people.find(x=>x.id===b.dataset.upw);
     openPanel('ตั้งรหัสผ่านใหม่', `${esc(p.full_name)} · <span class="mono">${esc(p.username)}</span>`, `<form class="card" id="pwForm"><label class="field"><span>รหัสผ่านใหม่ (อย่างน้อย 8 ตัว)</span><input class="input mono" id="pw-new" minlength="8" required autocomplete="new-password"></label><div class="row"><button class="btn primary">ตั้งรหัสผ่าน</button></div></form>`);
     $('#pwForm').onsubmit=async e=>{ e.preventDefault(); try { await q(sb.rpc('admin_set_password',{p_user:p.id,p_password:$('#pw-new').value})); closePanel(); toast('ตั้งรหัสผ่านใหม่แล้ว'); } catch(err){ fail(err); } }; });
