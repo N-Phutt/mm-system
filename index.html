@@ -195,6 +195,8 @@ tbody tr.click:hover td{background:var(--surface-2)}
 .toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:8px;z-index:50;box-shadow:var(--shadow);max-width:calc(100% - 32px)}
 .toast.err{background:var(--bad);color:#fff}
 .note{background:var(--surface-2);border:1px dashed var(--line);border-radius:8px;padding:10px 12px;font-size:13px;color:var(--ink-2)}
+.vq-h{font-size:16px;margin:6px 0 -4px}
+.note.vf-stage{border:1px solid var(--ok,#16a34a);border-style:solid}
 .note.warn{border:1px solid var(--warn,#d97706);background:color-mix(in srgb,var(--warn,#d97706) 10%,transparent);color:var(--ink);gap:10px;flex-wrap:wrap}
 .checklist{margin:0;padding-left:20px}
 .loading{padding:40px;text-align:center;color:var(--ink-3)}
@@ -640,7 +642,7 @@ table.compact td{white-space:nowrap}
 /* ============ CONFIG ============ */
 const SB_URL = 'https://jtfeumjnqzozlmqlpcio.supabase.co';
 const SB_KEY = 'sb_publishable_m33nyCNfh5nKma5LxgV85g_ZLeQa052';
-const APP_VERSION = '1.5.0';
+const APP_VERSION = '1.5.1';
 const TZ = 'Asia/Bangkok';
 
 const sb = supabase.createClient(SB_URL, SB_KEY, { auth: { persistSession: true, autoRefreshToken: true } });
@@ -1373,6 +1375,7 @@ async function openWO(id){
       q(sb.from('work_order_events').select('*,actor:profiles!work_order_events_actor_id_fkey(full_name)').eq('work_order_id',id).order('created_at')),
       !seesWork() ? {data:[]} : q(sb.from('work_order_parts').select('id,quantity_used,used_at,part:part_id(part_code,name,unit,unit_cost)').eq('work_order_id',id).order('used_at'))
     ]);
+    w._eng = stage1Of(w, ev);
     let checklist = null;
     if (w.pm_schedule_id) { const r = await sb.from('pm_schedules').select('checklist').eq('id',w.pm_schedule_id).maybeSingle(); checklist = r.data?.checklist; }
     const [pr, kids, par] = await Promise.all([
@@ -1430,7 +1433,7 @@ function renderWO(w, ev, parts, checklist){
       ${w.resolution?`<dt>การแก้ไข</dt><dd style="white-space:pre-wrap">${esc(w.resolution)}</dd>`:''}
     </dl>
   </section>
-  ${w.status==='done' ? (can('wo.approve') ? `<section class="card verify-card" id="woVerify">${verifyBoxHTML(w)}</section>` : `<div class="note">${svgI('verify')} ซ่อมเสร็จแล้ว · <b>รอ Engineer ตรวจรับงาน</b> ก่อนปิดงาน</div>`) : ''}
+  ${w.status==='done' ? (can('wo.approve') ? `<section class="card verify-card" id="woVerify">${verifyBoxHTML(w)}</section>` : `<div class="note">${svgI('verify')} ซ่อมเสร็จแล้ว · <b>${w._eng?'ผ่าน Engineer แล้ว · รอ Senior Engineer ตรวจรับรอบสุดท้าย':'รอ Engineer ตรวจ → Senior Engineer ตรวจรับรอบสุดท้าย'}</b> ก่อนปิดงาน</div>`) : ''}
   ${w.verified_at ? verifyInfoHTML(w) : ''}
   ${w._parent||w._kids.length?`<section class="card wo-links"><b>ใบงานที่เกี่ยวข้อง:</b>${w._parent?`<span class="small muted">ต่อจาก</span><a data-open="${w._parent.id}" class="mono">${esc(w._parent.code)}</a>${statusPill(w._parent.status)}`:''}${w._kids.map(k=>`<span class="small muted">ใบงานซ่อมต่อ</span><a data-open="${k.id}" class="mono">${esc(k.code)}</a>${statusPill(k.status)}`).join('')}</section>`:''}
   ${checklist?.length?`<section class="card" id="woChk">${pmChecklistHTML(w, checklist, w._results, canWork && ['assigned','in_progress','on_hold'].includes(w.status))}</section>`:''}
@@ -2968,20 +2971,35 @@ if ('serviceWorker' in navigator && /^https?:/.test(location.protocol) && locati
 
 /* ============ ENGINEER VERIFICATION ============ */
 const reworkTag = w => w.rework_count > 0 ? `<span class="rework-tag" title="ถูกส่งกลับแก้ไข ${w.rework_count} ครั้ง">↩ แก้ไข ${w.rework_count}</span>` : '';
+// ตรวจรับ 2 ขั้น: (1) Engineer ตรวจ → (2) Senior Engineer ตรวจรับรอบสุดท้ายและปิดงาน
+const ENG_OK = '✅ Engineer ตรวจผ่านขั้นที่ 1';
+const stage1Of = (w, events) => { const t0 = w.completed_at ? new Date(w.completed_at).getTime() - 1000 : 0;
+  return (events||[]).filter(e => e.work_order_id ? e.work_order_id===w.id : true).filter(e => (e.comment||'').startsWith(ENG_OK) && new Date(e.created_at).getTime() >= t0).pop() || null; };
+const stageNote = e => `<div class="note vf-stage">✅ <b>ผ่าน Engineer ขั้นที่ 1</b> · ${esc(e.actor?.full_name||'')} · ${fmtDT(e.created_at)}${(e.comment||'').length>ENG_OK.length+2?`<div style="white-space:pre-wrap">${esc(e.comment.slice(ENG_OK.length+2))}</div>`:''}</div>`;
 function verifyBoxHTML(w, head=true){
-  const self = w.assigned_to === uid() && role() !== 'admin';
-  return `${head ? `<div class="card-head"><h3>${svgI('verify')} ตรวจรับงาน (Engineer)</h3><span class="small muted">ซ่อมเสร็จ ${w.completed_at ? timeAgo(w.completed_at)+'ที่แล้ว' : ''}</span></div>` : ''}
-    ${self ? '<div class="note">คุณเป็นผู้ซ่อมงานนี้เอง ต้องให้ Engineer คนอื่นตรวจรับ</div>' : `
-    <label class="field"><span>ความเห็นการตรวจรับ <small class="muted">(บังคับกรอกเมื่อไม่ผ่าน)</small></span><textarea class="input" data-vnote placeholder="เช่น ทดสอบเดินเครื่อง 30 นาที ไม่มีเสียงผิดปกติ / ยังมีน้ำมันรั่วที่ข้อต่อ"></textarea></label>
-    <div class="vf-actions"><button type="button" class="btn ok big" data-vf="ok">${svgI('check')} ผ่าน · ปิดงาน</button><button type="button" class="btn danger big" data-vf="no">↩ ไม่ผ่าน · ส่งกลับแก้ไข</button></div>`}`;
+  const self = w.assigned_to === uid() && role() !== 'admin', st = w._eng, rl = role();
+  const note = `<label class="field"><span>ความเห็นการตรวจ <small class="muted">(บังคับกรอกเมื่อไม่ผ่าน)</small></span><textarea class="input" data-vnote placeholder="เช่น ทดสอบเดินเครื่อง 30 นาที ไม่มีเสียงผิดปกติ / ยังมีน้ำมันรั่วที่ข้อต่อ"></textarea></label>`;
+  const no = `<button type="button" class="btn danger big" data-vf="no">↩ ไม่ผ่าน · ส่งกลับแก้ไข</button>`;
+  let bodyH;
+  if (self) bodyH = '<div class="note">คุณเป็นผู้ซ่อมงานนี้เอง ต้องให้คนอื่นตรวจรับ</div>';
+  else if (rl === 'engineer') bodyH = st
+    ? stageNote(st) + '<div class="note">รอ <b>Senior Engineer</b> ตรวจรับรอบสุดท้ายและปิดงาน</div>'
+    : note + `<div class="vf-actions"><button type="button" class="btn ok big" data-vf="eng">${svgI('check')} ผ่าน · ส่งให้ Senior Engineer</button>${no}</div>`;
+  else bodyH = (st ? stageNote(st) : '<div class="note">ยังไม่ผ่านการตรวจของ <b>Engineer</b> (ขั้นที่ 1)</div>') + note +
+    `<div class="vf-actions">${st ? `<button type="button" class="btn ok big" data-vf="ok">${svgI('check')} ผ่าน · ปิดงาน (รอบสุดท้าย)</button>` : rl==='admin' ? `<button type="button" class="btn ok big" data-vf="ok">${svgI('check')} ปิดงาน (ข้ามขั้น Engineer)</button>` : ''}${no}</div>`;
+  return `${head ? `<div class="card-head"><h3>${svgI('verify')} ตรวจรับงาน · ${st ? 'ขั้นที่ 2 Senior Engineer' : 'ขั้นที่ 1 Engineer'}</h3><span class="small muted">ซ่อมเสร็จ ${w.completed_at ? timeAgo(w.completed_at)+'ที่แล้ว' : ''}</span></div>` : ''}${bodyH}`;
 }
 function bindVerify(box, w, after){
   $$('[data-vf]', box).forEach(b => b.onclick = async () => {
-    const ok = b.dataset.vf === 'ok', note = $('[data-vnote]', box).value.trim();
+    const k = b.dataset.vf, ok = k !== 'no', note = $('[data-vnote]', box)?.value.trim() || '';
     if (!ok && !note) { toast('กรุณาระบุเหตุผลที่ไม่ผ่าน เพื่อให้ช่างรู้ว่าต้องแก้อะไร', true); $('[data-vnote]', box).focus(); return; }
     $$('[data-vf]', box).forEach(x => x.disabled = true);
-    try { await q(sb.rpc('verify_work_order', { p_id:w.id, p_approve:ok, p_note:note || null }));
-      toast(ok ? `ตรวจรับ ${w.code} ผ่าน · ปิดงานแล้ว` : `ส่ง ${w.code} กลับให้ช่างแก้ไขแล้ว`); refreshOpenCount(); refreshAlerts(); after && after();
+    try {
+      if (k === 'eng') { await q(sb.from('work_order_events').insert({ work_order_id:w.id, actor_id:uid(), event_type:'comment', comment: ENG_OK + (note ? ': ' + note : '') }));
+        toast(`${w.code} ผ่าน Engineer แล้ว · ส่งให้ Senior Engineer ตรวจรับรอบสุดท้าย`); }
+      else { await q(sb.rpc('verify_work_order', { p_id:w.id, p_approve:ok, p_note:note || null }));
+        toast(ok ? `ตรวจรับ ${w.code} รอบสุดท้ายผ่าน · ปิดงานแล้ว` : `ส่ง ${w.code} กลับให้ช่างแก้ไขแล้ว`); }
+      refreshOpenCount(); refreshAlerts(); after && after();
     } catch(e){ fail(e); $$('[data-vf]', box).forEach(x => x.disabled = false); }
   });
 }
@@ -2999,11 +3017,14 @@ PAGES.verify = async () => {
     q(sb.from('work_orders').select('id,code,title,status,verify_result,verify_note,verified_at,rework_count,verifier:profiles!work_orders_verified_by_fkey(full_name),assignee:profiles!work_orders_assigned_to_fkey(full_name)').not('verified_at','is',null).order('verified_at',{ascending:false}).limit(15))
   ]);
   const ids = list.map(w=>w.id);
-  const [att, parts, pmr] = ids.length ? await Promise.all([
+  const [att, parts, pmr, stg] = ids.length ? await Promise.all([
     sb.from('work_order_attachments').select('work_order_id,storage_path,kind,content_type').in('work_order_id', ids),
     sb.from('work_order_parts').select('work_order_id,quantity_used,part:part_id(part_code,name,unit)').in('work_order_id', ids),
-    sb.from('pm_results').select('work_order_id,result').in('work_order_id', ids)
-  ]) : [{data:[]},{data:[]},{data:[]}];
+    sb.from('pm_results').select('work_order_id,result').in('work_order_id', ids),
+    sb.from('work_order_events').select('work_order_id,comment,created_at,actor:profiles!work_order_events_actor_id_fkey(full_name)').in('work_order_id', ids).like('comment', ENG_OK+'%').order('created_at')
+  ]) : [{data:[]},{data:[]},{data:[]},{data:[]}];
+  list.forEach(w => { w._eng = stage1Of(w, (stg.data||[]).filter(e=>e.work_order_id===w.id)); });
+  const q1 = list.filter(w=>!w._eng), q2 = list.filter(w=>w._eng);
   let urls = {};
   if ((att.data||[]).length) { const r = await sb.storage.from(PHOTO_BUCKET).createSignedUrls(att.data.map(a=>a.storage_path), 3600); (r.data||[]).forEach(x=>{ if (x.signedUrl) urls[x.path]=x.signedUrl; }); }
   const by = (arr, id) => (arr||[]).filter(x=>x.work_order_id===id);
@@ -3014,7 +3035,7 @@ PAGES.verify = async () => {
     const thumbs = k => { const a = ph.filter(x=>(x.kind||'other')===k); return a.length ? `<div><div class="label">${k==='before'?'ก่อนซ่อม':k==='after'?'หลังซ่อม':'อื่น ๆ'}</div><div class="thumbs">${a.slice(0,4).map(x=>mediaThumb(urls[x.storage_path], x)).join('')}</div></div>` : ''; };
     const downH = w.downtime_start ? (new Date(w.downtime_end||Date.now()) - new Date(w.downtime_start))/36e5 : null;
     return `<article class="vq-card ${w.equipment?.criticality==='critical'||w.equipment_down?'hot':''}" data-vq="${w.id}">
-      <div class="vq-top"><a class="mono" data-open="${w.id}" href="javascript:void 0">${esc(w.code)}</a>${prioTag(w.priority)}${w.source==='pm'?'<span class="pill plain">PM</span>':''}${critFlag(w.equipment?.criticality)}${reworkTag(w)}<span class="vq-wait ${late(w)?'late':''}">รอตรวจรับ ${timeAgo(w.completed_at)}</span></div>
+      <div class="vq-top"><a class="mono" data-open="${w.id}" href="javascript:void 0">${esc(w.code)}</a>${prioTag(w.priority)}${w.source==='pm'?'<span class="pill plain">PM</span>':''}${critFlag(w.equipment?.criticality)}${reworkTag(w)}<span class="pill plain">${w._eng?'ขั้นที่ 2 · Senior Engineer':'ขั้นที่ 1 · Engineer'}</span><span class="vq-wait ${late(w)?'late':''}">รอตรวจรับ ${timeAgo(w.completed_at)}</span></div>
       <h3 class="vq-title">${esc(w.title)}</h3>
       <div class="vq-facts"><span>${w.equipment?`<a class="mono" href="#asset/${encodeURIComponent(w.equipment.asset_code)}">${esc(w.equipment.asset_code)}</a> <b>${esc(w.equipment.name)}</b>`:'ไม่ระบุอุปกรณ์'}</span>${w.location?`<span>${esc(w.location.name)}</span>`:''}<span>ผู้ซ่อม <b>${esc(w.assignee?.full_name||'–')}</b></span><span>ใช้เวลา <b>${dur((new Date(w.completed_at)-new Date(w.created_at))/36e5)}</b></span>${downH!=null?`<span class="down">เครื่องหยุด ${dur(downH)}</span>`:''}</div>
       <div class="vq-grid">
@@ -3027,7 +3048,7 @@ PAGES.verify = async () => {
     </article>`; };
   $('#view').innerHTML = `
   <div class="page-head"><div><h1>ตรวจรับงานซ่อม</h1><p>${list.length ? `${list.length} งานรอตรวจรับ${list.filter(late).length?` · <span class="sla bad">รอเกิน 24 ชม. ${list.filter(late).length} งาน</span>`:''}` : 'ไม่มีงานรอตรวจรับ'}</p></div></div>
-  ${list.length ? `<div class="vq">${list.map(card).join('')}</div>` : '<section class="card"><div class="empty">ไม่มีงานรอตรวจรับ 👍</div></section>'}
+  ${list.length ? (role()==='engineer' ? [[q1,'ขั้นที่ 1 · รอ Engineer ตรวจ'],[q2,'ขั้นที่ 2 · รอ Senior Engineer ตรวจรับรอบสุดท้าย']] : [[q2,'ขั้นที่ 2 · รอ Senior Engineer ตรวจรับรอบสุดท้าย'],[q1,'ขั้นที่ 1 · รอ Engineer ตรวจ']]).map(([g,t])=>`<h2 class="vq-h">${t} <span class="muted">(${g.length})</span></h2>${g.length?`<div class="vq">${g.map(card).join('')}</div>`:'<p class="small muted">ไม่มีงานในขั้นนี้</p>'}`).join('') : '<section class="card"><div class="empty">ไม่มีงานรอตรวจรับ 👍</div></section>'}
   <section class="card"><div class="card-head"><h2>ตรวจรับล่าสุด</h2></div>
     ${recent.length ? `<div class="tbl-wrap"><table class="compact"><thead><tr><th>เลขที่</th><th>เรื่อง</th><th>ผล</th><th>ผู้ซ่อม</th><th>ผู้ตรวจรับ</th><th>เวลา</th></tr></thead><tbody>${recent.map(r=>`<tr class="click" data-wo="${r.id}" tabindex="0"><td class="mono">${esc(r.code)}</td><td>${esc(r.title)}${r.verify_note?`<div class="small muted">${esc(r.verify_note)}</div>`:''}</td><td>${r.verify_result==='approved'?'<span class="pill st-done">ผ่าน</span>':'<span class="pill st-cancelled-bad">ส่งกลับแก้ไข</span>'}</td><td class="small">${esc(r.assignee?.full_name||'–')}</td><td class="small">${esc(r.verifier?.full_name||'–')}</td><td class="small muted" style="white-space:nowrap">${fmtDT(r.verified_at)}</td></tr>`).join('')}</tbody></table></div>` : '<div class="empty">ยังไม่มีการตรวจรับ</div>'}
   </section>`;
