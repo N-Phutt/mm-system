@@ -640,7 +640,7 @@ table.compact td{white-space:nowrap}
 /* ============ CONFIG ============ */
 const SB_URL = 'https://jtfeumjnqzozlmqlpcio.supabase.co';
 const SB_KEY = 'sb_publishable_m33nyCNfh5nKma5LxgV85g_ZLeQa052';
-const APP_VERSION = '1.4.3';
+const APP_VERSION = '1.4.4';
 const TZ = 'Asia/Bangkok';
 
 const sb = supabase.createClient(SB_URL, SB_KEY, { auth: { persistSession: true, autoRefreshToken: true } });
@@ -2287,6 +2287,84 @@ function techForm(){
     } catch(err){ fail(err); $('#tn-btn').disabled=false; }
   };
 }
+// ---- นำเข้ารายชื่อพนักงานจาก Excel / วางจากตาราง → สร้างบัญชี + กำหนดบทบาทตามตำแหน่ง ----
+function roleFromPosition(pos){
+  const t = String(pos||'').toLowerCase();
+  if (/(avp|vice president|manager|ผู้จัดการ|เมเนเจอร์)/.test(t)) return 'manager';
+  if (/engineer|วิศวกร/.test(t)) return 'engineer';
+  if (/(leader|shift lead|supervisor|หัวหน้า)/.test(t)) return 'supervisor';
+  if (/(technician|ช่าง|store|สโตร์)/.test(t)) return 'technician';
+  if (/(admin|clerk|ธุรการ|officer)/.test(t)) return 'reporter';
+  return 'technician';
+}
+function genPassword(){ const a='abcdefghjkmnpqrstuvwxyz', d='23456789'; const r=n=>crypto.getRandomValues(new Uint32Array(1))[0]%n;
+  let s=''; for(let i=0;i<5;i++) s+=a[r(a.length)]; s=s[0].toUpperCase()+s.slice(1); for(let i=0;i<4;i++) s+=d[r(d.length)]; return s+'!'; }
+function userImport(people, after){
+  const norm = x => String(x??'').replace(/\s+/g,' ').trim();
+  const stripTitle = x => norm(x).replace(/^(นางสาว|นาง|นาย|น\.ส\.)\s*/,'');
+  const H = { eng:/name\s*\(eng|english/i, id:/employee\s*id|รหัสพนักงาน/i, th:/name\s*\(thai|ชื่อ.*ไทย|ชื่อ-นามสกุล/i, nick:/^nick\s*name$|ชื่อเล่น$/i, nickth:/nick\s*name\s*\(thai/i, pos:/position|ตำแหน่ง/i, phone:/phone|โทร/i, email:/e-?mail|อีเมล/i };
+  let rows = [];
+  openPanel('นำเข้ารายชื่อพนักงาน','สร้างบัญชีให้หลายคนพร้อมกัน · บทบาทกำหนดจากตำแหน่งอัตโนมัติ (แก้ได้ก่อนยืนยัน)', `
+    <section class="card">
+      <label class="field"><span>เลือกไฟล์ Excel รายชื่อพนักงาน</span><input type="file" class="input" id="ui-file" accept=".xlsx,.xls,.csv"></label>
+      <label class="field"><span>หรือคัดลอกแถวจาก Excel (รวมแถวหัวตาราง) แล้ววางที่นี่</span><textarea class="input" id="ui-paste" rows="4" placeholder="Name (Eng)&#9;Employee ID&#9;Name (Thai)&#9;Nick Name&#9;Nick Name (Thai)&#9;Position&#9;Phone Number&#9;Email"></textarea></label>
+      <div class="note small">ตำแหน่ง → บทบาท: Manager/AVP → ${ROLE.manager} · Senior Engineer/Engineer → ${ROLE.engineer} · Leader Technician/Leader Shift → ${ROLE.supervisor} · Technician/Store → ${ROLE.technician} · Admin → ${ROLE.reporter}<br>ชื่อผู้ใช้ = รหัสพนักงาน · รหัสผ่านเริ่มต้นสุ่มให้แต่ละคน และดาวน์โหลดเป็นไฟล์ได้หลังสร้างเสร็จ</div>
+    </section>
+    <section class="card" id="ui-prev" hidden></section>`);
+  const fromGrid = grid => {
+    const hi = grid.findIndex(r => r.some(c=>H.eng.test(norm(c))) || r.some(c=>H.id.test(norm(c))));
+    let col = {}, body = grid;
+    if (hi>=0){ grid[hi].forEach((c,i)=>{ const t=norm(c); for (const [k,re] of Object.entries(H)) if (col[k]==null && re.test(t) && !(k==='nick' && H.nickth.test(t))) { col[k]=i; break; } }); body=grid.slice(hi+1); }
+    else col = { eng:0,id:1,th:2,nick:3,nickth:4,pos:5,phone:6,email:7 };
+    const byName = new Map(); people.forEach(p=>{ byName.set(stripTitle(p.full_name).split(' (')[0], p); if (p.username) byName.set(p.username.toLowerCase(), p); });
+    rows = body.map(r=>{ const g=k=>col[k]==null?'':norm(r[col[k]]);
+      const th=g('th'), eng=g('eng'), id=g('id').replace(/\D/g,''), nick=g('nickth')||g('nick'), email=g('email').replace(/\s/g,'');
+      if (!th && !eng) return null;
+      const full = (th||eng) + (nick?` (${nick})`:'');
+      const ex = byName.get(stripTitle(th)) || byName.get(eng) || (id && byName.get(id)) || (email && people.find(p=>p.email && p.email.toLowerCase()===email.toLowerCase()));
+      return { full, eng, id, pos:g('pos'), phone:g('phone'), email, role: ex?.role==='admin' ? 'admin' : roleFromPosition(g('pos')), username:(id||eng.toLowerCase().replace(/[^a-z0-9]+/g,'_')).slice(0,32), ex };
+    }).filter(Boolean);
+    paint();
+  };
+  const paint = () => {
+    const box=$('#ui-prev'); box.hidden=false;
+    const nNew=rows.filter(r=>!r.ex).length, nUpd=rows.length-nNew;
+    box.innerHTML = `<div class="card-head"><h2>พบ ${rows.length} คน</h2><span class="small muted">สร้างใหม่ ${nNew} · มีบัญชีอยู่แล้ว (อัปเดตบทบาท/ตำแหน่ง) ${nUpd}</span></div>
+      <div class="tbl-wrap"><table class="compact"><thead><tr><th>ชื่อ / ตำแหน่ง</th><th>ชื่อผู้ใช้</th><th>บทบาทในระบบ</th></tr></thead><tbody>
+      ${rows.map((r,i)=>`<tr><td>${esc(r.full)} ${r.ex?'<span class="pill plain">มีบัญชีแล้ว</span>':'<span class="pill st-new plain">ใหม่</span>'}<div class="small muted">${esc(r.pos||'–')}</div></td>
+        <td class="mono">${r.ex?esc(r.ex.username||'–'):`<input class="input mono" style="width:112px" data-uu="${i}" value="${esc(r.username)}">`}</td>
+        <td><select class="input" data-ur="${i}" ${r.ex?.role==='admin'?'disabled':''}>${ROLE_ORDER.filter(k=>k!=='admin'||r.role==='admin').map(k=>`<option value="${k}" ${k===r.role?'selected':''}>${ROLE[k]}</option>`).join('')}</select></td></tr>`).join('')}
+      </tbody></table></div>
+      <div class="row"><button class="btn primary" id="ui-go">${svgI('check')} ยืนยัน สร้าง/อัปเดต ${rows.length} บัญชี</button></div><div id="ui-res"></div>`;
+    $$('[data-ur]').forEach(s=>s.onchange=()=>{ rows[+s.dataset.ur].role=s.value; });
+    $$('[data-uu]').forEach(s=>s.oninput=()=>{ rows[+s.dataset.uu].username=s.value.trim().toLowerCase(); });
+    $('#ui-go').onclick = run;
+  };
+  const run = async () => {
+    const bad = rows.find(r=>!r.ex && !/^[a-z0-9_]{3,32}$/.test(r.username));
+    if (bad) return toast(`ชื่อผู้ใช้ของ ${bad.full} ไม่ถูกต้อง (a-z, 0-9, _ ยาว 3–32)`, true);
+    $('#ui-go').disabled=true; const out=[]; let ok=0;
+    for (const r of rows) {
+      try {
+        if (r.ex) { const patch={ position:nz(r.pos), phone:nz(r.phone) }; if (r.ex.role!=='admin' && r.ex.id!==uid()) patch.role=r.role;
+          await q(sb.from('profiles').update(patch).eq('id',r.ex.id)); out.push([r.full,r.ex.username,ROLE[patch.role||r.ex.role],'(เดิม)','อัปเดตแล้ว']); }
+        else { const pw=genPassword();
+          await q(sb.rpc('admin_create_user',{ p_username:r.username, p_password:pw, p_full_name:r.full, p_role:r.role, p_team:null, p_position:nz(r.pos), p_phone:nz(r.phone), p_lead:r.role==='supervisor' }));
+          out.push([r.full,r.username,ROLE[r.role],pw,'สร้างแล้ว']); }
+        ok++;
+      } catch(err){ out.push([r.full,r.ex?.username||r.username,ROLE[r.role],'',`ผิดพลาด: ${err.message||err}`]); }
+      $('#ui-res').innerHTML=`<p class="small muted">กำลังดำเนินการ ${out.length}/${rows.length}…</p>`;
+    }
+    $('#ui-res').innerHTML = `<div class="note">${svgI('check')} สำเร็จ ${ok}/${rows.length} บัญชี — <b>ดาวน์โหลดรายการรหัสผ่านเริ่มต้นตอนนี้</b> (จะไม่แสดงอีก) แล้วแจ้งแต่ละคนให้เปลี่ยนรหัสหลังเข้าระบบครั้งแรก</div>
+      <div class="row"><button class="btn primary" id="ui-dl">${svgI('download')} ดาวน์โหลดบัญชีและรหัสผ่าน (CSV)</button></div>
+      <div class="tbl-wrap"><table class="compact"><thead><tr><th>ชื่อ</th><th>ชื่อผู้ใช้</th><th>บทบาท</th><th>ผล</th></tr></thead><tbody>${out.map(o=>`<tr><td>${esc(o[0])}</td><td class="mono">${esc(o[1])}</td><td>${esc(o[2])}</td><td class="small">${esc(o[4])}</td></tr>`).join('')}</tbody></table></div>`;
+    $('#ui-dl').onclick=()=>downloadCsv(`user-accounts-${today()}.csv`, [['ชื่อ','ชื่อผู้ใช้','บทบาท','รหัสผ่านเริ่มต้น','ผล'], ...out]);
+    await loadRefs().catch(()=>{}); after && after();
+  };
+  $('#ui-file').onchange = async e => { const f=e.target.files[0]; if(!f) return;
+    try { await loadXLSX(); const wb=XLSX.read(await f.arrayBuffer()); const grid=[]; wb.SheetNames.forEach(n=>grid.push(...XLSX.utils.sheet_to_json(wb.Sheets[n],{header:1,defval:'',raw:false}))); fromGrid(grid); } catch(err){ fail(err); } };
+  $('#ui-paste').oninput = e => { const t=e.target.value.trim(); if (t) fromGrid(t.split(/\r?\n/).map(l=>l.split('\t'))); };
+}
 function roleHelp(){
   return `<div class="note small">สิทธิ์ของแต่ละบทบาทปรับได้ที่ Settings → ผู้ใช้งานและสิทธิ์ · ผู้ดูแลระบบมีสิทธิ์ทั้งหมดเสมอ</div>`;
 }
@@ -3244,7 +3322,7 @@ async function usersPage(B){
     ${kpi('sla','บทบาททั้งหมด', ROLE_ORDER.length, '', 'ปรับสิทธิ์ได้ด้านล่าง', 'violet')}
   </section>
   <section class="card">
-    <div class="card-head"><h2>พบ ${rows.length} บัญชี</h2><button class="btn primary sm" id="uAdd">+ เพิ่มผู้ใช้</button></div>
+    <div class="card-head"><h2>พบ ${rows.length} บัญชี</h2><div class="row"><button class="btn sm" id="uImp">${svgI('download')} นำเข้ารายชื่อพนักงาน (Excel)</button><button class="btn primary sm" id="uAdd">+ เพิ่มผู้ใช้</button></div></div>
     <div class="pm-filters uf">
       <label class="field"><span>ค้นหา</span><input class="input" id="uf-term" placeholder="ชื่อผู้ใช้ / ชื่อ / อีเมล" value="${esc(f.term)}"></label>
       <label class="field"><span>บทบาท</span><select class="input" id="uf-role"><option value="">ทั้งหมด</option>${ROLE_ORDER.map(r=>`<option value="${r}" ${r===f.role?'selected':''}>${ROLE[r]}</option>`).join('')}</select></label>
@@ -3274,6 +3352,7 @@ async function usersPage(B){
   $('#uf-st').onchange=e=>{ f.st=e.target.value; again(); };
   if ($('#uf-clear')) $('#uf-clear').onclick=()=>{ Object.assign(f,{term:'',role:'',st:''}); again(); };
   $('#uAdd').onclick=()=>techForm();
+  $('#uImp').onclick=()=>userImport(people, again);
   $$('[data-uedit]').forEach(b=>b.onclick=()=>{ const p=people.find(x=>x.id===b.dataset.uedit); techDetail({p,open:openBy[p.id]||0,over:0,done30:0,mttr:null}); });
   $$('[data-upw]').forEach(b=>b.onclick=()=>{ const p=people.find(x=>x.id===b.dataset.upw);
     openPanel('ตั้งรหัสผ่านใหม่', `${esc(p.full_name)} · <span class="mono">${esc(p.username)}</span>`, `<form class="card" id="pwForm"><label class="field"><span>รหัสผ่านใหม่ (อย่างน้อย 8 ตัว)</span><input class="input mono" id="pw-new" minlength="8" required autocomplete="new-password"></label><div class="row"><button class="btn primary">ตั้งรหัสผ่าน</button></div></form>`);
