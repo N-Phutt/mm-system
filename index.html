@@ -640,7 +640,7 @@ table.compact td{white-space:nowrap}
 /* ============ CONFIG ============ */
 const SB_URL = 'https://jtfeumjnqzozlmqlpcio.supabase.co';
 const SB_KEY = 'sb_publishable_m33nyCNfh5nKma5LxgV85g_ZLeQa052';
-const APP_VERSION = '1.4.4';
+const APP_VERSION = '1.4.5';
 const TZ = 'Asia/Bangkok';
 
 const sb = supabase.createClient(SB_URL, SB_KEY, { auth: { persistSession: true, autoRefreshToken: true } });
@@ -649,7 +649,7 @@ const sb = supabase.createClient(SB_URL, SB_KEY, { auth: { persistSession: true,
 const S = { session:null, profile:null, teams:[], people:[], parts:[], locations:[], route:'dashboard' };
 const STATUS = { new:'ใหม่', assigned:'มอบหมายแล้ว', in_progress:'กำลังซ่อม', on_hold:'พักงาน/รออะไหล่', done:'รอตรวจรับ', closed:'ปิดงานแล้ว', cancelled:'ยกเลิก' };
 const PRIO = { urgent:'ด่วนมาก', high:'สูง', medium:'ปานกลาง', low:'ต่ำ' };
-const ROLE = { admin:'ผู้ดูแลระบบ', manager:'เมเนเจอร์', supervisor:'หัวหน้าทีมช่าง', engineer:'วิศวกร (ตรวจรับงาน)', technician:'ช่างเทคนิค', reporter:'ผู้แจ้งซ่อม' };
+const ROLE = { admin:'ผู้ดูแลระบบ', manager:'เมเนเจอร์', supervisor:'หัวหน้าทีมช่าง', engineer:'วิศวกร', technician:'ช่างเทคนิค', reporter:'ผู้แจ้งซ่อม' };
 const ROLE_ORDER = ['admin','manager','supervisor','engineer','technician','reporter'];
 const SOURCE = { qr:'QR', manual:'แจ้งในระบบ', pm:'PM', portal:'พอร์ทัล' };
 const RECUR = { daily:'ทุกวัน', weekly:'ทุกสัปดาห์', monthly:'ทุกเดือน', quarterly:'ทุกไตรมาส', yearly:'ทุกปี', custom_days:'กำหนดจำนวนวัน' };
