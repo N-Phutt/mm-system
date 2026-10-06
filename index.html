@@ -642,7 +642,7 @@ table.compact td{white-space:nowrap}
 /* ============ CONFIG ============ */
 const SB_URL = 'https://jtfeumjnqzozlmqlpcio.supabase.co';
 const SB_KEY = 'sb_publishable_m33nyCNfh5nKma5LxgV85g_ZLeQa052';
-const APP_VERSION = '1.5.1';
+const APP_VERSION = '1.5.2';
 const TZ = 'Asia/Bangkok';
 
 const sb = supabase.createClient(SB_URL, SB_KEY, { auth: { persistSession: true, autoRefreshToken: true } });
@@ -3112,7 +3112,7 @@ const PERM_GROUPS = [
   ['รายงาน', [['report.view','ดูรายงาน']]],
   ['ระบบ', [['user.manage','จัดการผู้ใช้งานและสิทธิ์'],['setting.manage','ตั้งค่าระบบ']]],
   ['ช่างเทคนิค', [['tech.view','ดูข้อมูลช่าง'],['tech.manage','จัดการข้อมูลช่าง']]],
-  ['ใบงาน', [['wo.view','ดูใบงานทั้งหมด'],['wo.create','สร้าง/แจ้งซ่อม'],['wo.edit','รับงานและบันทึกการซ่อม'],['wo.assign','มอบหมายงาน'],['wo.approve','ตรวจรับงาน / ส่งกลับแก้ไข (Senior Engineer / Engineer)'],['wo.close','ปิดงาน/ยกเลิกใบงาน'],['wo.delete','ลบใบงาน']]],
+  ['ใบงาน', [['wo.view','ดูใบงานทั้งหมด'],['wo.create','สร้าง/แจ้งซ่อม'],['wo.edit','รับงานและบันทึกการซ่อม'],['wo.assign','มอบหมายงาน'],['wo.approve','ตรวจรับงาน / ส่งกลับแก้ไข'],['wo.close','ปิดงาน/ยกเลิกใบงาน'],['wo.delete','ลบใบงาน']]],
 ];
 PAGES.settings = async () => {
   const canSet = can('setting.manage'), canUsers = can('user.manage');
@@ -3373,7 +3373,7 @@ async function usersPage(B){
       <div class="row">${ROLE_ORDER.map(r=>`<button class="qchip ${permRole===r?'on':''}" data-prole="${r}">${ROLE[r]} <b>${roleCount(r)}</b></button>`).join('')}</div></div>
     ${strayApprove.length?`<div class="note warn row" style="justify-content:space-between">บทบาท ${strayApprove.map(r=>ROLE[r]).join(', ')} ยังมีสิทธิ์ตรวจรับงานค้างอยู่ในฐานข้อมูล — ตามนโยบาย ให้เฉพาะผู้ดูแลระบบ, Senior Engineer และ Engineer<button class="btn sm primary" id="permFixApprove">นำสิทธิ์ตรวจรับออก</button></div>`:''}
     ${permRole==='admin'?'<div class="note">ผู้ดูแลระบบมีสิทธิ์ทั้งหมดเสมอ และแก้ไขไม่ได้ เพื่อป้องกันไม่ให้ระบบไม่มีผู้ดูแล</div>':''}
-    <div class="perm-grid">${PERM_GROUPS.map(([g,list])=>`<div class="perm-box"><h3>${g}</h3>${list.map(([k,l])=>`<label class="perm-row"><span class="check"><input type="checkbox" data-perm="${k}" ${k==='wo.approve' ? (VERIFY_ROLES.includes(permRole)?'checked':'') : (permRole==='admin'||pr.has(k)?'checked':'')} ${permRole==='admin'||k==='wo.approve'?'disabled':''}> ${l}${k==='wo.approve'?' <span class="small muted">— ล็อกไว้: เฉพาะผู้ดูแลระบบ, Senior Engineer และ Engineer</span>':''}</span><code>${k}</code></label>`).join('')}</div>`).join('')}</div>
+    <div class="perm-grid">${PERM_GROUPS.map(([g,list])=>`<div class="perm-box"><h3>${g}</h3>${list.map(([k,l])=>`<label class="perm-row"><span class="check"><input type="checkbox" data-perm="${k}" ${k==='wo.approve' ? (VERIFY_ROLES.includes(permRole)?'checked':'') : (permRole==='admin'||pr.has(k)?'checked':'')} ${permRole==='admin'||k==='wo.approve'?'disabled':''}> ${l}${k==='wo.approve'?' <span class="small muted" title="ล็อกไว้: เฉพาะผู้ดูแลระบบ, Senior Engineer และ Engineer">🔒</span>':''}</span><code>${k}</code></label>`).join('')}</div>`).join('')}</div>
     ${permRole!=='admin'?`<div class="row"><button class="btn" id="permPreset">${svgI('check')} ใช้สิทธิ์มาตรฐานของทุกตำแหน่ง</button><button class="btn primary" id="permSave">${svgI('check')} บันทึกสิทธิ์ของบทบาทนี้</button><span class="small muted">มีผลทันทีกับผู้ใช้ในบทบาทนี้ (ผู้ใช้ต้องรีเฟรชหน้าเว็บ)</span></div>`:''}
   </section>`;
   let tm; $('#uf-term').oninput=e=>{ clearTimeout(tm); tm=setTimeout(()=>{ f.term=e.target.value.trim(); again().then(()=>{ const i=$('#uf-term'); if(i){ i.focus(); i.setSelectionRange(i.value.length,i.value.length);} }); },300); };
