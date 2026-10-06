@@ -196,6 +196,19 @@ tbody tr.click:hover td{background:var(--surface-2)}
 .toast.err{background:var(--bad);color:#fff}
 .note{background:var(--surface-2);border:1px dashed var(--line);border-radius:8px;padding:10px 12px;font-size:13px;color:var(--ink-2)}
 .vq-h{font-size:16px;margin:6px 0 -4px}
+.rq-list{display:grid;gap:12px}
+.rq-card{cursor:pointer;display:grid;gap:8px}.rq-card:hover{border-color:var(--accent)}
+.rq-card h3{margin:0;font-size:16px}
+.rq-top{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.rq-steps span{line-height:1.25}
+@media (max-width:560px){.rq-steps li{font-size:10.5px}}
+.rq-steps{list-style:none;margin:6px 0 0;padding:0;display:grid;grid-template-columns:repeat(5,1fr);gap:4px}
+.rq-steps li{display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;font-size:12px;color:var(--ink-3,#888);position:relative}
+.rq-steps li:not(:last-child)::after{content:'';position:absolute;top:12px;left:calc(50% + 14px);right:calc(-50% + 14px);height:2px;background:var(--line)}
+.rq-steps li.done:not(:last-child)::after{background:var(--accent)}
+.rq-steps i{font-style:normal;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;border:2px solid var(--line);background:var(--surface);font-weight:700;font-size:12px}
+.rq-steps li.done i{background:var(--accent);border-color:var(--accent);color:#fff}
+.rq-steps li.now{color:var(--ink);font-weight:600}.rq-steps li.now i{border-color:var(--accent);color:var(--accent)}
 .note.vf-stage{border:1px solid var(--ok,#16a34a);border-style:solid}
 .note.warn{border:1px solid var(--warn,#d97706);background:color-mix(in srgb,var(--warn,#d97706) 10%,transparent);color:var(--ink);gap:10px;flex-wrap:wrap}
 .checklist{margin:0;padding-left:20px}
@@ -642,7 +655,7 @@ table.compact td{white-space:nowrap}
 /* ============ CONFIG ============ */
 const SB_URL = 'https://jtfeumjnqzozlmqlpcio.supabase.co';
 const SB_KEY = 'sb_publishable_m33nyCNfh5nKma5LxgV85g_ZLeQa052';
-const APP_VERSION = '1.5.3';
+const APP_VERSION = '1.6.0';
 const TZ = 'Asia/Bangkok';
 
 const sb = supabase.createClient(SB_URL, SB_KEY, { auth: { persistSession: true, autoRefreshToken: true } });
@@ -651,8 +664,9 @@ const sb = supabase.createClient(SB_URL, SB_KEY, { auth: { persistSession: true,
 const S = { session:null, profile:null, teams:[], people:[], parts:[], locations:[], route:'dashboard' };
 const STATUS = { new:'ใหม่', assigned:'มอบหมายแล้ว', in_progress:'กำลังซ่อม', on_hold:'พักงาน/รออะไหล่', done:'รอตรวจรับ', closed:'ปิดงานแล้ว', cancelled:'ยกเลิก' };
 const PRIO = { urgent:'ด่วนมาก', high:'สูง', medium:'ปานกลาง', low:'ต่ำ' };
-const ROLE = { admin:'ผู้ดูแลระบบ', manager:'Senior Engineer', engineer:'Engineer', supervisor:'Leader Technician', technician:'Technician', reporter:'Store control office (Admin)' };
-const ROLE_ORDER = ['admin','manager','engineer','supervisor','technician','reporter'];
+const ROLE = { admin:'ผู้ดูแลระบบ', manager:'Senior Engineer', engineer:'Engineer', supervisor:'Leader Technician', technician:'Technician', reporter:'Store control office (Admin)', requester:'ผู้แจ้งซ่อม' };
+const ROLE_ORDER = ['admin','manager','engineer','supervisor','technician','reporter','requester'];
+const isReq = () => role()==='requester';
 // สิทธิ์มาตรฐานตามตำแหน่ง (กดใช้ได้ที่ Settings → ผู้ใช้งานและสิทธิ์)
 const ROLE_PRESET = {
   manager:   ['dashboard.view','asset.view','asset.manage','calendar.view','part.view','part.manage','pm.view','pm.manage','report.view','tech.view','tech.manage','wo.view','wo.create','wo.edit','wo.assign','wo.approve','wo.close'],
@@ -660,6 +674,7 @@ const ROLE_PRESET = {
   supervisor:['dashboard.view','asset.view','calendar.view','part.view','pm.view','report.view','tech.view','wo.view','wo.create','wo.edit','wo.assign'],
   technician:['dashboard.view','asset.view','calendar.view','part.view','pm.view','wo.view','wo.create','wo.edit'],
   reporter:  ['dashboard.view','asset.view','calendar.view','part.view','part.manage','report.view','wo.view','wo.create'],
+  requester: ['wo.create'],
 };
 const SOURCE = { qr:'QR', manual:'แจ้งในระบบ', pm:'PM', portal:'พอร์ทัล' };
 const RECUR = { daily:'ทุกวัน', weekly:'ทุกสัปดาห์', monthly:'ทุกเดือน', quarterly:'ทุกไตรมาส', yearly:'ทุกปี', custom_days:'กำหนดจำนวนวัน' };
@@ -874,15 +889,16 @@ async function loadRefs(){
 
 /* ============ SHELL & ROUTER ============ */
 const NAV = [
-  ['dashboard','Dashboard', ()=>true],
+  ['dashboard','Dashboard', ()=>!isReq()],
   ['board','ผังสถานะเครื่อง', ()=>can('asset.view')||can('dashboard.view')],
   ['new','แจ้งซ่อม', ()=>can('wo.create')],
+  ['requests','ติดตามงานที่แจ้ง', ()=>can('wo.create')],
   ['my','งานของฉัน', ()=>can('wo.edit')],
-  ['repair','งานซ่อม', ()=>true],
+  ['repair','งานซ่อม', ()=>!isReq()],
   ['pm','PM Plan', ()=>can('pm.view')||can('pm.manage')],
   ['equipment','Asset & Equipment', ()=>can('asset.view')||can('asset.manage')],
   ['parts','อะไหล่คงคลัง', ()=>can('part.view')||can('part.manage')],
-  ['wo','Work Order', ()=>true],
+  ['wo','Work Order', ()=>!isReq()],
   ['kanban','บอร์ดใบงาน', ()=>can('wo.view')||can('wo.assign')],
   ['verify','ตรวจรับงาน', ()=>can('wo.approve')],
   ['tech','Technician', ()=>can('tech.view')||can('tech.manage')],
@@ -890,7 +906,7 @@ const NAV = [
   ['reports','Reports', ()=>can('report.view')],
   ['settings','Settings', ()=>can('setting.manage')||can('user.manage')],
 ];
-const CRUMB = { new:['สร้างใบงานใหม่','Create Work Order'], repair:['งานซ่อม','Corrective Maintenance'], wo:['ใบงานทั้งหมด','Work Orders'], dashboard:['ระบบบำรุงรักษาอุปกรณ์','Equipment Maintenance Dashboard'],
+const CRUMB = { requests:['ติดตามงานที่แจ้ง','My Requests'], new:['สร้างใบงานใหม่','Create Work Order'], repair:['งานซ่อม','Corrective Maintenance'], wo:['ใบงานทั้งหมด','Work Orders'], dashboard:['ระบบบำรุงรักษาอุปกรณ์','Equipment Maintenance Dashboard'],
   pm:['แผนบำรุงรักษาเชิงป้องกัน','Preventive Maintenance Plan'], equipment:['ทะเบียนอุปกรณ์','Asset & Equipment'], parts:['อะไหล่คงคลัง','Spare Parts Inventory'], tech:['ช่างซ่อมบำรุง','Technicians'],
   calendar:['ปฏิทินงาน','Maintenance Calendar'], my:['งานของฉัน','My Jobs'], verify:['ตรวจรับงานซ่อม','Engineer Verification'], kanban:['บอร์ดใบงาน','Kanban Board'], board:['ผังสถานะเครื่องจักร','Plant Status Board'], asset:['รายละเอียดเครื่อง','Asset Detail'], reports:['รายงาน','Reports'], settings:['ตั้งค่าระบบ','Settings'] };
 function renderShell(){
@@ -906,7 +922,7 @@ function renderShell(){
       <header class="topbar">
         <button class="menu" id="menuBtn" aria-label="เมนู">☰</button>
         <div class="grow crumb-wrap"><b id="crumb"></b><small id="crumb2"></small></div>
-        <form class="gsearch" id="gSearch" role="search"><span>${svgI('search')}</span><input id="gq" placeholder="ค้นหาใบงาน หรืออุปกรณ์" aria-label="ค้นหา"></form>
+        <form class="gsearch" id="gSearch" role="search" ${isReq()?'hidden':''}><span>${svgI('search')}</span><input id="gq" placeholder="ค้นหาใบงาน หรืออุปกรณ์" aria-label="ค้นหา"></form>
         ${seesWork()||can('part.view')?`<div class="bell-wrap"><button class="icon-btn" id="bellBtn" aria-label="การแจ้งเตือน" title="การแจ้งเตือน">${svgI('bell')}<span class="bell-n" id="bellCount" hidden></span></button><div class="bell-panel" id="bellPanel" hidden></div></div>`:''}
         ${ZOOM_OK?`<button class="icon-btn zoom-btn" id="zoomBtn" aria-label="ขนาดการแสดงผล" title="ขนาดการแสดงผล (คลิกเพื่อเปลี่ยน)"></button>`:''}
         <button class="icon-btn" id="themeBtn" aria-label="สลับโหมดสว่าง/มืด" title="สลับโหมดสว่าง/มืด"></button>
@@ -960,6 +976,8 @@ async function refreshOpenCount(){
 }
 const PAGES = {};
 function bnavHTML(){
+  if (isReq()) { const a = x => `<a href="#${x[0]}" data-bn="${x[0]}">${svgI(x[2])}<span>${x[1]}</span></a>`;
+    return a(['requests','ติดตามงาน','wo']) + `<a href="#new" class="bn-new" data-bn="new"><span class="plus">${svgI('plus')}</span><span>แจ้งซ่อม</span></a>` + `<button type="button" id="bnMenu">${svgI('menu')}<span>เมนู</span></button>`; }
   const it = [['dashboard','หน้าหลัก','dashboard'], can('wo.edit')?['my','งานของฉัน','my']:['repair','งานซ่อม','repair']];
   const it2 = [(can('asset.view')||can('dashboard.view'))?['board','ผังเครื่อง','board']:['wo','ใบงาน','wo']];
   const a = x => `<a href="#${x[0]}" data-bn="${x[0]}">${svgI(x[2])}<span>${x[1]}</span></a>`;
@@ -987,8 +1005,8 @@ function route(){
     if (!(can('asset.view')||can('asset.manage')||can('wo.edit'))) { $('#view').innerHTML = `<section class="card"><div class="empty">คุณไม่มีสิทธิ์ดูรายละเอียดเครื่อง<br>${can('wo.create')?`<a class="btn primary" href="#report/${encodeURIComponent(code)}" style="margin-top:12px">แจ้งซ่อมเครื่อง ${esc(code)}</a>`:''}</div></section>`; return; }
     PAGES.asset(code).catch(fail); return;
   }
-  const r = (hr || 'dashboard');
-  const n = NAV.find(n=>n[0]===r && n[2]()) || NAV[0];
+  const r = (hr || (isReq() ? 'requests' : 'dashboard'));
+  const n = NAV.find(n=>n[0]===r && n[2]()) || NAV.find(n=>n[0]===(isReq()?'requests':'dashboard') && n[2]()) || NAV.find(n=>n[2]()) || NAV[0];
   S.route = n[0]; closeSide(); closePanel();
   $$('#nav a').forEach(a=>a.classList.toggle('on', a.dataset.r===n[0]));
   $$('#bnav [data-bn]').forEach(a=>a.classList.toggle('on', a.dataset.bn===n[0]));
@@ -1499,7 +1517,7 @@ PAGES.new = async (preset) => {
   preset = preset || null;
   const canAssign = can('wo.edit') || can('wo.assign');
   $('#view').innerHTML = `
-  <nav class="bc small"><a href="#wo">ใบงานทั้งหมด</a><span>›</span><span>สร้างใบงานใหม่</span></nav>
+  <nav class="bc small"><a href="${isReq()?'#requests':'#wo'}">${isReq()?'งานที่ฉันแจ้ง':'ใบงานทั้งหมด'}</a><span>›</span><span>${isReq()?'แจ้งซ่อม':'สร้างใบงานใหม่'}</span></nav>
   <form id="woForm" class="nf-grid">
     <section class="card">
       <h2>รายละเอียดงาน</h2>
@@ -1522,7 +1540,7 @@ PAGES.new = async (preset) => {
       ${canAssign?`<label class="field"><span>ทีมผู้รับผิดชอบ</span><select class="input" id="nf-team" name="team_id">${teamOptions(S.profile.team_id,'– ยังไม่ระบุ –')}</select></label>`:''}
       ${can('wo.assign')?`<label class="field"><span>ช่างผู้รับผิดชอบ</span><select class="input" id="nf-tech" name="assigned_to">${techOptions('', S.profile.team_id)}</select></label>`:''}
       ${can('wo.edit')&&!can('wo.assign')?`<label class="check"><input type="checkbox" id="nf-self"> รับงานนี้เอง</label>`:''}
-      <div class="row nf-actions"><button class="btn primary" id="nf-btn">${svgI('wo')} สร้างใบงาน</button><a class="btn" href="#wo">ยกเลิก</a></div>
+      <div class="row nf-actions"><button class="btn primary" id="nf-btn">${svgI('wo')} ${isReq()?'ส่งแจ้งซ่อม':'สร้างใบงาน'}</button><a class="btn" href="${isReq()?'#requests':'#wo'}">ยกเลิก</a></div>
     </section>
   </form>`;
   const paintSla = () => { $('#nf-sla').innerHTML = slaFor($('#nf-prio').value, nz($('#nf-team')?.value||'')); };
@@ -1539,9 +1557,37 @@ PAGES.new = async (preset) => {
       const { data } = await q(sb.from('work_orders').insert(row).select('id,code').single());
       if (pick.files.length) { btn.textContent = 'กำลังอัปโหลด…'; try { await uploadReportPhotos(data.id, pick.files, S.profile.full_name); } catch(err){ toast('สร้างใบงานแล้ว แต่แนบไฟล์ไม่สำเร็จ: '+thaiErr(err), true); } }
       toast('สร้างใบงาน '+data.code+' แล้ว'+(pick.files.length?` · แนบ${mediaWord(pick.files)}`:'')); refreshOpenCount();
-      location.hash = row.source==='pm' ? '#wo' : '#repair'; setTimeout(()=>openWO(data.id), 300);
+      location.hash = isReq() ? '#requests' : row.source==='pm' ? '#wo' : '#repair'; setTimeout(()=>openWO(data.id), 300);
     } catch(err){ fail(err); btn.disabled=false; }
   };
+};
+
+/* ============ ติดตามงานที่ฉันแจ้ง (ผู้แจ้งซ่อม) ============ */
+const reqFilter = { st:'open' };
+const REQ_STEPS = [['new','แจ้งซ่อม'],['assigned','รับเรื่องแล้ว'],['in_progress','กำลังซ่อม'],['done','รอตรวจรับ'],['closed','ปิดงาน']];
+const reqStep = st => ({ new:0, assigned:1, in_progress:2, on_hold:2, done:3, closed:4 })[st] ?? -1;
+PAGES.requests = async () => {
+  const f = reqFilter;
+  let qy = sb.from('work_orders').select('id,code,title,status,priority,created_at,assigned_at,completed_at,verified_at,rework_count,equipment_down,equipment:equipment_id(asset_code,name),location:location_id(name),assignee:profiles!work_orders_assigned_to_fkey(full_name,phone)')
+    .eq('reported_by', uid()).order('created_at', { ascending:false }).limit(100);
+  if (f.st==='open') qy = qy.not('status','in','(closed,cancelled)'); else if (f.st==='closed') qy = qy.in('status',['closed','cancelled']);
+  const { data:list } = await q(qy);
+  const stepper = w => { if (w.status==='cancelled') return '<div class="rq-steps"><span class="pill st-cancelled-bad">ยกเลิกแล้ว</span></div>';
+    const k = reqStep(w.status);
+    return `<ol class="rq-steps">${REQ_STEPS.map(([s,l],i)=>`<li class="${i<k?'done':i===k?'now':''}"><i>${i<k?'✓':i+1}</i><span>${l}${i===k&&w.status==='on_hold'?' (พักงาน/รออะไหล่)':''}</span></li>`).join('')}</ol>`; };
+  $('#view').innerHTML = `
+  <div class="page-head"><div><h1>งานที่ฉันแจ้ง</h1><p>ติดตามสถานะงานซ่อมที่คุณแจ้งไว้ · กดที่งานเพื่อดูรายละเอียดหรือสอบถามช่าง</p></div>
+    <a class="btn primary" href="#new">${svgI('plus')} แจ้งซ่อมใหม่</a></div>
+  <div class="row" style="margin-bottom:12px">${[['open','กำลังดำเนินการ'],['closed','เสร็จแล้ว'],['all','ทั้งหมด']].map(([k,l])=>`<button class="qchip ${f.st===k?'on':''}" data-rqs="${k}">${l}</button>`).join('')}</div>
+  ${list.length ? `<div class="rq-list">${list.map(w=>`<article class="card rq-card" data-wo="${w.id}" tabindex="0">
+      <div class="rq-top"><span class="mono">${esc(w.code)}</span>${prioTag(w.priority)}<span class="pill st-${w.status}">${STATUS[w.status]}</span>${w.rework_count?reworkTag(w):''}<span class="small muted" style="margin-left:auto">แจ้งเมื่อ ${fmtDT(w.created_at)}</span></div>
+      <h3>${esc(w.title)}</h3>
+      <div class="small muted">${[w.equipment?`<span class="mono">${esc(w.equipment.asset_code)}</span> ${esc(w.equipment.name)}`:'', esc(w.location?.name||''), w.assignee?`ช่างผู้รับผิดชอบ <b>${esc(w.assignee.full_name)}</b>${w.assignee.phone?` (${esc(w.assignee.phone)})`:''}`:'ยังไม่มีช่างรับงาน'].filter(Boolean).join(' · ')}</div>
+      ${stepper(w)}
+    </article>`).join('')}</div>`
+    : `<section class="card"><div class="empty">${f.st==='open'?'ไม่มีงานที่กำลังดำเนินการ':'ยังไม่มีงานที่แจ้ง'}<br><a class="btn primary" href="#new" style="margin-top:10px">${svgI('plus')} แจ้งซ่อม</a></div></section>`}`;
+  $$('[data-rqs]').forEach(b=>b.onclick=()=>{ f.st=b.dataset.rqs; PAGES.requests().catch(fail); });
+  $$('.rq-card').forEach(c=>{ c.onclick=()=>openWO(c.dataset.wo); c.onkeydown=e=>{ if(e.key==='Enter') openWO(c.dataset.wo); }; });
 };
 
 /* ============ PUBLIC REPORT (no login) ============ */
@@ -2995,7 +3041,10 @@ function bindVerify(box, w, after){
     if (!ok && !note) { toast('กรุณาระบุเหตุผลที่ไม่ผ่าน เพื่อให้ช่างรู้ว่าต้องแก้อะไร', true); $('[data-vnote]', box).focus(); return; }
     $$('[data-vf]', box).forEach(x => x.disabled = true);
     try {
-      if (k === 'eng') { await q(sb.from('work_order_events').insert({ work_order_id:w.id, actor_id:uid(), event_type:'comment', comment: ENG_OK + (note ? ': ' + note : '') }));
+      if (k === 'eng') { const rr = await sb.rpc('engineer_verify_work_order', { p_id:w.id, p_note:note || null });
+        if (rr.error && /could not find|does not exist|PGRST202/i.test((rr.error.message||'')+(rr.error.code||'')))
+          await q(sb.from('work_order_events').insert({ work_order_id:w.id, actor_id:uid(), event_type:'comment', comment: ENG_OK + (note ? ': ' + note : '') }));
+        else if (rr.error) throw rr.error;
         toast(`${w.code} ผ่าน Engineer แล้ว · ส่งให้ Senior Engineer ตรวจรับรอบสุดท้าย`); }
       else { await q(sb.rpc('verify_work_order', { p_id:w.id, p_approve:ok, p_note:note || null }));
         toast(ok ? `ตรวจรับ ${w.code} รอบสุดท้ายผ่าน · ปิดงานแล้ว` : `ส่ง ${w.code} กลับให้ช่างแก้ไขแล้ว`); }
@@ -3339,7 +3388,7 @@ async function usersPage(B){
   const f = userFilter;
   const rows = people.filter(p=>(!f.role||p.role===f.role) && (!f.st||(f.st==='on'?p.active:!p.active))
     && (!f.term || [p.username,p.full_name,A[p.id]?.email,p.position].some(v=>(v||'').toLowerCase().includes(f.term.toLowerCase()))));
-  const RC = { admin:'st-cancelled-bad', manager:'st-in_progress', supervisor:'st-assigned', technician:'st-new', reporter:'st-closed' };
+  const RC = { admin:'st-cancelled-bad', manager:'st-in_progress', engineer:'st-done', supervisor:'st-assigned', technician:'st-new', reporter:'st-closed', requester:'st-on_hold' };
   const roleCount = r => people.filter(p=>p.role===r && p.active).length;
   const pr = new Set(perms.filter(x=>x.role===permRole).map(x=>x.perm));
   const strayApprove = [...new Set(perms.filter(x=>x.perm==='wo.approve' && !VERIFY_ROLES.includes(x.role)).map(x=>x.role))];
