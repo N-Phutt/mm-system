@@ -648,6 +648,9 @@ table.compact td{white-space:nowrap}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 
 /* ===== v1.7 layout consistency ===== */
+#usersBody{display:grid;gap:18px;align-content:start}
+.card .pm-filters{margin-bottom:2px}
+.card-head .row{gap:8px}
 @media (min-width:861px) and (max-height:1000px){.side{gap:12px;padding-top:14px;padding-bottom:12px}.nav a{padding:6px 12px;font-size:13.5px}.side .me{padding-top:10px}.brand small{display:none}}
 table.compact td.wrap{white-space:normal;min-width:120px}
 .content{gap:18px}
@@ -691,7 +694,7 @@ td .small,td small{font-size:12px}
 /* ============ CONFIG ============ */
 const SB_URL = 'https://jtfeumjnqzozlmqlpcio.supabase.co';
 const SB_KEY = 'sb_publishable_m33nyCNfh5nKma5LxgV85g_ZLeQa052';
-const APP_VERSION = '1.7.0';
+const APP_VERSION = '1.7.1';
 const TZ = 'Asia/Bangkok';
 
 const sb = supabase.createClient(SB_URL, SB_KEY, { auth: { persistSession: true, autoRefreshToken: true } });
