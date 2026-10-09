@@ -725,6 +725,9 @@ td .small,td small{font-size:12px}
 .upd-bar{position:fixed;left:50%;transform:translateX(-50%);bottom:18px;z-index:200;display:flex;align-items:center;gap:10px;padding:10px 12px 10px 16px;background:var(--surface);border:1px solid var(--accent);border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.18);font-size:14px;max-width:calc(100vw - 24px)}
 .upd-bar span{white-space:nowrap}
 @media (max-width:860px){.upd-bar{bottom:84px;left:12px;right:12px;transform:none;max-width:none;justify-content:space-between}}
+.boot-stuck{min-height:100vh;display:grid;place-items:center;padding:20px}
+.boot-stuck .card{max-width:420px;width:100%;text-align:center;gap:12px}
+.boot-stuck .btn{width:100%}
 </style>
 </head>
 <body>
@@ -734,10 +737,19 @@ td .small,td small{font-size:12px}
 /* ============ CONFIG ============ */
 const SB_URL = 'https://jtfeumjnqzozlmqlpcio.supabase.co';
 const SB_KEY = 'sb_publishable_m33nyCNfh5nKma5LxgV85g_ZLeQa052';
-const APP_VERSION = '1.9.0';
+const APP_VERSION = '1.9.1';
 const TZ = 'Asia/Bangkok';
 
-const sb = supabase.createClient(SB_URL, SB_KEY, { auth: { persistSession: true, autoRefreshToken: true } });
+// ทุกคำขอมีเวลาจำกัด — เน็ตมือถือที่ค้างจะไม่ทำให้แอปรอไม่มีที่สิ้นสุด
+const fetchWithTimeout = (url, opt = {}) => {
+  if (opt.signal || /\/storage\/v1\/object\//.test(String(url))) return fetch(url, opt);   // อัปโหลดไฟล์ใหญ่ไม่ตัดเวลา
+  const ac = new AbortController(); const t = setTimeout(() => ac.abort(), 20000);
+  return fetch(url, { ...opt, signal: ac.signal }).finally(() => clearTimeout(t));
+};
+const sb = supabase.createClient(SB_URL, SB_KEY, {
+  auth: { persistSession: true, autoRefreshToken: true, lock: async (_name, _timeout, fn) => await fn() },
+  global: { fetch: fetchWithTimeout }
+});
 
 /* ============ STATE & LABELS ============ */
 const S = { session:null, profile:null, teams:[], people:[], parts:[], locations:[], route:'dashboard' };
@@ -937,7 +949,18 @@ async function boot(){
       return renderPublicReport(m ? decodeURIComponent(m[2]) : ''); }
   }
   booting = true;
-  try { await bootInner(); } finally { booting = false; }
+  const dog = setTimeout(showBootStuck, 12000);
+  try { await bootInner(); } catch (e) { console.error(e); showBootStuck(); } finally { booting = false; clearTimeout(dog); }
+}
+function showBootStuck(){
+  if (S.profile && document.querySelector('.app')) return;          // เข้าแอปได้แล้ว ไม่ต้องแสดง
+  $('#root').innerHTML = `<div class="boot-stuck"><div class="card">
+    <h2>การเชื่อมต่อช้ากว่าปกติ</h2>
+    <p class="muted">ระบบยังโหลดไม่เสร็จ อาจเป็นเพราะสัญญาณอินเทอร์เน็ต ลองกดโหลดใหม่ ถ้ายังค้างให้กดเข้าสู่ระบบใหม่</p>
+    <button class="btn primary big" id="bsRetry">ลองโหลดใหม่</button>
+    <button class="btn big" id="bsRelogin">ออกแล้วเข้าสู่ระบบใหม่</button></div></div>`;
+  $('#bsRetry').onclick = () => location.reload();
+  $('#bsRelogin').onclick = () => { try { Object.keys(localStorage).filter(k => k.startsWith('sb-')).forEach(k => localStorage.removeItem(k)); } catch {} location.reload(); };
 }
 async function bootInner(){
   const { data:{ session } } = await sb.auth.getSession();   // local, no network
@@ -959,8 +982,8 @@ async function bootInner(){
   } catch (e) { fail(e); renderLogin(thaiErr(e)); }
 }
 sb.auth.onAuthStateChange((ev, session) => {
-  if (ev === 'SIGNED_IN' && !S.profile) { S.session = session; boot(); }
-  if (ev === 'SIGNED_OUT') { S.session=null; S.profile=null; renderLogin(); }
+  if (ev === 'SIGNED_IN' && !S.profile) { S.session = session; setTimeout(boot, 0); }
+  if (ev === 'SIGNED_OUT') { S.session=null; S.profile=null; setTimeout(() => renderLogin(), 0); }
 });
 
 async function loadRefs(){
