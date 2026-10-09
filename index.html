@@ -685,6 +685,40 @@ td .small,td small{font-size:12px}
 .vq-card .field textarea{min-height:64px}
 .set-grid{max-width:1400px}
 @media (max-width:860px){.vf-actions{max-width:none;margin-left:0}.pm-tbl td:nth-child(2),.pm-tbl td:nth-child(3){min-width:160px}}
+
+/* ===== ติดตามงานที่แจ้ง (v1.8) ===== */
+.rq-tabs{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}
+.rq-tab{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:12px 14px;border:1px solid var(--line);border-radius:var(--r);background:var(--surface);color:var(--ink-2);cursor:pointer;font:inherit;text-align:left}
+.rq-tab b{font:600 20px var(--mono);color:var(--ink)}
+.rq-tab:hover{border-color:var(--accent)}
+.rq-tab.on{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+.rq-tab.on b{color:var(--accent)}
+.rq-card-list{padding:6px 0}
+.rq-list2{list-style:none;margin:0;padding:0}
+.rq-row{display:grid;grid-template-columns:190px minmax(0,1fr) 230px 170px;gap:16px;align-items:center;padding:14px 18px;border-bottom:1px solid var(--line);cursor:pointer}
+.rq-row:last-child{border-bottom:0}
+.rq-row:hover{background:var(--surface-2)}
+.rq-badge{display:grid;gap:1px;padding:8px 12px;border-radius:8px;border-left:4px solid currentColor}
+.rq-badge b{font-size:14px}
+.rq-badge small{font-size:11.5px;opacity:.85}
+.rq-info{background:var(--info-soft);color:var(--info)} .rq-accent{background:var(--accent-soft);color:var(--accent)}
+.rq-warn{background:var(--warn-soft);color:var(--warn)} .rq-violet{background:color-mix(in srgb,#7c3aed 12%,transparent);color:#7c3aed}
+.rq-ok{background:var(--ok-soft);color:var(--ok)} .rq-muted{background:var(--surface-2);color:var(--ink-3)}
+.rq-title{font-weight:600;font-size:15px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.rq-down{display:inline-block;background:var(--bad-soft);color:var(--bad);font-size:11px;font-weight:600;border-radius:4px;padding:1px 6px;margin-right:6px;vertical-align:2px}
+.rq-main{display:grid;gap:3px;min-width:0}
+.rq-tech{display:flex;align-items:center;gap:10px;min-width:0}
+.rq-tech > div{display:grid;min-width:0}
+.rq-tech b{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.avatar.sm{width:30px;height:30px;font-size:13px;flex:none}
+.rq-prog{display:grid;gap:5px;justify-items:end}
+.rq-dots{display:grid;grid-template-columns:repeat(5,22px);gap:4px}
+.rq-dots i{height:6px;border-radius:3px;background:var(--line)}
+.rq-dots i.on{background:var(--accent)}
+.rq-legend{margin:0}
+@media (max-width:1200px){.rq-tabs{grid-template-columns:repeat(3,minmax(0,1fr))}.rq-row{grid-template-columns:170px minmax(0,1fr) 190px}.rq-prog{grid-column:2/4;justify-items:start;grid-auto-flow:column;align-items:center;justify-content:start;gap:10px}}
+@media (max-width:640px){.rq-tabs{grid-template-columns:repeat(2,minmax(0,1fr))}.rq-tab{padding:10px 12px}.rq-tab b{font-size:17px}
+  .rq-row{grid-template-columns:1fr;gap:8px;padding:14px}.rq-badge{justify-self:start;grid-auto-flow:column;align-items:baseline;gap:8px}.rq-prog{grid-column:auto}}
 </style>
 </head>
 <body>
@@ -694,7 +728,7 @@ td .small,td small{font-size:12px}
 /* ============ CONFIG ============ */
 const SB_URL = 'https://jtfeumjnqzozlmqlpcio.supabase.co';
 const SB_KEY = 'sb_publishable_m33nyCNfh5nKma5LxgV85g_ZLeQa052';
-const APP_VERSION = '1.7.1';
+const APP_VERSION = '1.8.0';
 const TZ = 'Asia/Bangkok';
 
 const sb = supabase.createClient(SB_URL, SB_KEY, { auth: { persistSession: true, autoRefreshToken: true } });
@@ -1607,30 +1641,45 @@ PAGES.new = async (preset) => {
 
 /* ============ ติดตามงานที่ฉันแจ้ง (ผู้แจ้งซ่อม) ============ */
 const reqFilter = { st:'open' };
-const REQ_STEPS = [['new','แจ้งซ่อม'],['assigned','รับเรื่องแล้ว'],['in_progress','กำลังซ่อม'],['done','รอตรวจรับ'],['closed','ปิดงาน']];
-const reqStep = st => ({ new:0, assigned:1, in_progress:2, on_hold:2, done:3, closed:4 })[st] ?? -1;
+// สถานะแบบภาษาคนทั่วไป สำหรับผู้แจ้ง
+const REQ_ST = {
+  new:        { t:'รอรับเรื่อง',        d:'ยังไม่มีช่างรับงาน',              c:'info',   step:1 },
+  assigned:   { t:'ช่างรับงานแล้ว',     d:'รอเริ่มซ่อม',                     c:'accent', step:2 },
+  in_progress:{ t:'กำลังซ่อม',          d:'ช่างกำลังดำเนินการ',             c:'warn',   step:3 },
+  on_hold:    { t:'รออะไหล่ / พักงาน',  d:'งานหยุดชั่วคราว',                 c:'warn',   step:3 },
+  done:       { t:'ซ่อมเสร็จ',          d:'รอวิศวกรตรวจรับ',                c:'violet', step:4 },
+  closed:     { t:'เสร็จเรียบร้อย',     d:'ตรวจรับและปิดงานแล้ว',           c:'ok',     step:5 },
+  cancelled:  { t:'ยกเลิก',             d:'ใบงานถูกยกเลิก',                 c:'muted',  step:0 } };
+const REQ_TABS = [['open','กำลังดำเนินการ',w=>!['closed','cancelled'].includes(w.status)],['new','รอรับเรื่อง',w=>w.status==='new'],
+  ['doing','กำลังซ่อม',w=>['assigned','in_progress','on_hold'].includes(w.status)],['done','รอตรวจรับ',w=>w.status==='done'],
+  ['closed','เสร็จแล้ว',w=>['closed','cancelled'].includes(w.status)],['all','ทั้งหมด',()=>true]];
 PAGES.requests = async () => {
   const f = reqFilter;
-  let qy = sb.from('work_orders').select('id,code,title,status,priority,created_at,assigned_at,completed_at,verified_at,rework_count,equipment_down,equipment:equipment_id(asset_code,name),location:location_id(name),assignee:profiles!work_orders_assigned_to_fkey(full_name,phone)')
-    .eq('reported_by', uid()).order('created_at', { ascending:false }).limit(100);
-  if (f.st==='open') qy = qy.not('status','in','(closed,cancelled)'); else if (f.st==='closed') qy = qy.in('status',['closed','cancelled']);
-  const { data:list } = await q(qy);
-  const stepper = w => { if (w.status==='cancelled') return '<div class="rq-steps"><span class="pill st-cancelled-bad">ยกเลิกแล้ว</span></div>';
-    const k = reqStep(w.status);
-    return `<ol class="rq-steps">${REQ_STEPS.map(([s,l],i)=>`<li class="${i<k?'done':i===k?'now':''}"><i>${i<k?'✓':i+1}</i><span>${l}${i===k&&w.status==='on_hold'?' (พักงาน/รออะไหล่)':''}</span></li>`).join('')}</ol>`; };
+  const { data:all } = await q(sb.from('work_orders').select('id,code,title,status,priority,created_at,updated_at,assigned_at,completed_at,verified_at,rework_count,equipment_down,equipment:equipment_id(asset_code,name),location:location_id(name),assignee:profiles!work_orders_assigned_to_fkey(full_name,phone)')
+    .eq('reported_by', uid()).order('created_at', { ascending:false }).limit(200));
+  const tab = REQ_TABS.find(t=>t[0]===f.st) || REQ_TABS[0];
+  const list = all.filter(tab[2]);
+  const cnt = k => all.filter(REQ_TABS.find(t=>t[0]===k)[2]).length;
+  const lastAt = w => [w.verified_at,w.completed_at,w.assigned_at,w.updated_at,w.created_at].filter(Boolean).sort().pop();
+  const row = w => { const m = REQ_ST[w.status] || REQ_ST.new; const tech = w.assignee;
+    return `<li class="rq-row" data-wo="${w.id}" tabindex="0">
+      <span class="rq-badge rq-${m.c}"><b>${m.t}</b><small>${m.d}</small></span>
+      <div class="rq-main">
+        <div class="rq-title">${w.equipment_down?'<span class="rq-down">เครื่องหยุด</span>':''}${esc(w.title)}</div>
+        <div class="small muted">${[esc(w.code), w.equipment?esc(w.equipment.name):'', esc(w.location?.name||''), 'แจ้ง '+fmtD(w.created_at)].filter(Boolean).join(' · ')}</div>
+      </div>
+      <div class="rq-tech">${tech?`<span class="avatar sm">${esc(shortName(tech.full_name).slice(0,1))}</span><div><b>${esc(shortName(tech.full_name))}</b>${tech.phone?`<a class="small" href="tel:${esc(tech.phone)}" onclick="event.stopPropagation()">📞 ${esc(tech.phone)}</a>`:''}</div>`:'<span class="small muted">— รอมอบหมายช่าง</span>'}</div>
+      <div class="rq-prog">${m.step?`<div class="rq-dots">${[1,2,3,4,5].map(i=>`<i class="${i<=m.step?'on':''}"></i>`).join('')}</div><small class="muted">อัปเดต ${timeAgo(lastAt(w))}ที่แล้ว</small>`:''}</div>
+    </li>`; };
   $('#view').innerHTML = `
-  <div class="page-head"><div><h1>งานที่ฉันแจ้ง</h1><p>ติดตามสถานะงานซ่อมที่คุณแจ้งไว้ · กดที่งานเพื่อดูรายละเอียดหรือสอบถามช่าง</p></div>
+  <div class="page-head"><div><h1>งานที่ฉันแจ้ง</h1><p>ติดตามสถานะงานซ่อมที่คุณแจ้งไว้ · กดที่รายการเพื่อดูรายละเอียดหรือพิมพ์สอบถามช่าง</p></div>
     <a class="btn primary" href="#new">${svgI('plus')} แจ้งซ่อมใหม่</a></div>
-  <div class="row" style="margin-bottom:12px">${[['open','กำลังดำเนินการ'],['closed','เสร็จแล้ว'],['all','ทั้งหมด']].map(([k,l])=>`<button class="qchip ${f.st===k?'on':''}" data-rqs="${k}">${l}</button>`).join('')}</div>
-  ${list.length ? `<div class="rq-list">${list.map(w=>`<article class="card rq-card" data-wo="${w.id}" tabindex="0">
-      <div class="rq-top"><span class="mono">${esc(w.code)}</span>${prioTag(w.priority)}<span class="pill st-${w.status}">${STATUS[w.status]}</span>${w.rework_count?reworkTag(w):''}<span class="small muted" style="margin-left:auto">แจ้งเมื่อ ${fmtDT(w.created_at)}</span></div>
-      <h3>${esc(w.title)}</h3>
-      <div class="small muted">${[w.equipment?`<span class="mono">${esc(w.equipment.asset_code)}</span> ${esc(w.equipment.name)}`:'', esc(w.location?.name||''), w.assignee?`ช่างผู้รับผิดชอบ <b>${esc(w.assignee.full_name)}</b>${w.assignee.phone?` (${esc(w.assignee.phone)})`:''}`:'ยังไม่มีช่างรับงาน'].filter(Boolean).join(' · ')}</div>
-      ${stepper(w)}
-    </article>`).join('')}</div>`
-    : `<section class="card"><div class="empty">${f.st==='open'?'ไม่มีงานที่กำลังดำเนินการ':'ยังไม่มีงานที่แจ้ง'}<br><a class="btn primary" href="#new" style="margin-top:10px">${svgI('plus')} แจ้งซ่อม</a></div></section>`}`;
+  <div class="rq-tabs">${REQ_TABS.map(([k,l])=>`<button class="rq-tab ${f.st===k?'on':''}" data-rqs="${k}"><span>${l}</span><b>${cnt(k)}</b></button>`).join('')}</div>
+  ${list.length ? `<section class="card rq-card-list"><ul class="rq-list2">${list.map(row).join('')}</ul></section>`
+    : `<section class="card"><div class="empty">${f.st==='open'?'ไม่มีงานที่กำลังดำเนินการ 👍':'ไม่มีรายการในหมวดนี้'}<br><a class="btn primary" href="#new" style="margin-top:10px">${svgI('plus')} แจ้งซ่อม</a></div></section>`}
+  <p class="small muted rq-legend">ขั้นตอน: แจ้งซ่อม → ช่างรับงาน → กำลังซ่อม → ซ่อมเสร็จ รอตรวจรับ → เสร็จเรียบร้อย</p>`;
   $$('[data-rqs]').forEach(b=>b.onclick=()=>{ f.st=b.dataset.rqs; PAGES.requests().catch(fail); });
-  $$('.rq-card').forEach(c=>{ c.onclick=()=>openWO(c.dataset.wo); c.onkeydown=e=>{ if(e.key==='Enter') openWO(c.dataset.wo); }; });
+  $$('.rq-row').forEach(c=>{ c.onclick=()=>openWO(c.dataset.wo); c.onkeydown=e=>{ if(e.key==='Enter') openWO(c.dataset.wo); }; });
 };
 
 /* ============ PUBLIC REPORT (no login) ============ */
