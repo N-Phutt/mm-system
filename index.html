@@ -646,6 +646,42 @@ table.compact td{white-space:nowrap}
   .kv{grid-template-columns:110px 1fr}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+/* ===== v1.7 layout consistency ===== */
+@media (min-width:861px) and (max-height:1000px){.side{gap:12px;padding-top:14px;padding-bottom:12px}.nav a{padding:6px 12px;font-size:13.5px}.side .me{padding-top:10px}.brand small{display:none}}
+table.compact td.wrap{white-space:normal;min-width:120px}
+.content{gap:18px}
+.page-head{align-items:center;min-height:44px}
+.page-head h1{font-size:22px}
+.page-head p{font-size:13.5px}
+/* one filter-bar style everywhere: no card, no field labels, equal control heights */
+.filterbar{display:grid;gap:10px}
+.filterbar .pm-top{padding-bottom:0;border-bottom:0}
+.pm-filters .field > span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.pm-filters{align-items:center}
+.pm-filters .btn,.pm-filters .check{align-self:center!important;padding-bottom:0!important}
+.toolbar .input,.pm-filters .input,.toolbar .btn,.pm-filters .btn{min-height:38px}
+/* tables: same type size and row rhythm on every page */
+th,td{font-size:13px;padding:10px 12px}
+th{font-size:12px}
+table.compact td,table.compact th{padding:9px 12px;font-size:13px}
+td .mono,td.mono{font-size:12.5px}
+td .small,td small{font-size:12px}
+.tbl-wrap td{line-height:1.45}
+/* long names wrap to at most 2 lines instead of 3+ */
+.pm-tbl td:nth-child(2),.pm-tbl td:nth-child(3){min-width:220px;max-width:340px;white-space:normal}
+/* dashboard right rail: compact alert rows so both columns end near each other */
+.alerts li{padding:8px 6px}
+.al-body > div:first-child{display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
+.al-body .small{display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
+@media (min-width:1501px){.ov{grid-template-columns:minmax(0,1fr) 360px}}
+/* forms & action rows: don't stretch across ultra-wide screens */
+.nf-grid{max-width:1320px}
+.vf-actions{max-width:560px;margin-left:auto}
+.vf-actions .btn{flex:1 1 200px}
+.vq-card .field textarea{min-height:64px}
+.set-grid{max-width:1400px}
+@media (max-width:860px){.vf-actions{max-width:none;margin-left:0}.pm-tbl td:nth-child(2),.pm-tbl td:nth-child(3){min-width:160px}}
 </style>
 </head>
 <body>
@@ -655,7 +691,7 @@ table.compact td{white-space:nowrap}
 /* ============ CONFIG ============ */
 const SB_URL = 'https://jtfeumjnqzozlmqlpcio.supabase.co';
 const SB_KEY = 'sb_publishable_m33nyCNfh5nKma5LxgV85g_ZLeQa052';
-const APP_VERSION = '1.6.2';
+const APP_VERSION = '1.7.0';
 const TZ = 'Asia/Bangkok';
 
 const sb = supabase.createClient(SB_URL, SB_KEY, { auth: { persistSession: true, autoRefreshToken: true } });
@@ -735,6 +771,7 @@ function thaiErr(e){
 }
 async function q(p){ const r = await p; if (r.error) throw r.error; return r; }
 function formData(form){ const o={}; new FormData(form).forEach((v,k)=>{ o[k]=typeof v==='string'?v.trim():v; }); return o; }
+const shortName = n => (n||'').replace(/^(นางสาว|นาง|นาย|น\.ส\.)\s*/,'');
 const nz = v => v===''||v==null ? null : v;
 
 const ICON = {
@@ -833,9 +870,9 @@ try { const z = localStorage.getItem('emm.zoom'); if (z && z!=='auto' && ZOOM_ST
 function autoZoom(){
   const w = window.innerWidth, h = window.innerHeight;
   if (w < 861) return 1;
-  if (h < 760 || w < 1400) return 0.85;
-  if (h < 900 || w < 1680) return 0.9;
-  return 1;
+  let z = w < 1300 ? 0.85 : w < 1600 ? 0.9 : 1;
+  if (h < 620) z = Math.min(z, 0.85);
+  return z;
 }
 function applyZoom(){
   if (!ZOOM_OK) return;
@@ -1140,8 +1177,8 @@ PAGES.dashboard = async () => {
 
       <section class="card span2">
         <div class="card-head"><h2>ใบงานล่าสุด</h2><a class="small" href="#wo">ดูทั้งหมด ›</a></div>
-        ${d.latest.length ? `<div class="tbl-wrap"><table class="compact"><thead><tr><th>เลขที่ใบงาน</th><th>อุปกรณ์</th><th>พื้นที่</th><th>ความเร่งด่วน</th><th>SLA</th><th>ผู้รับผิดชอบ</th><th>สถานะ</th></tr></thead><tbody>
-          ${d.latest.map(w=>`<tr class="click" data-wo="${w.id}" tabindex="0"><td class="mono"><a>${esc(w.code)}</a></td><td class="mono">${esc(w.asset_code||'–')}</td><td>${esc(w.location||'–')}</td><td>${prioTag(w.priority)}</td><td>${slaTag(w)}</td><td>${esc(w.assignee||'–')}</td><td>${statusPill(w.status)}</td></tr>`).join('')}
+        ${d.latest.length ? `<div class="tbl-wrap"><table class="compact dash-latest"><thead><tr><th>เลขที่ใบงาน</th><th>อุปกรณ์ / พื้นที่</th><th>ความเร่งด่วน</th><th>SLA</th><th>ผู้รับผิดชอบ</th><th>สถานะ</th></tr></thead><tbody>
+          ${d.latest.map(w=>`<tr class="click" data-wo="${w.id}" tabindex="0"><td class="mono"><a>${esc(w.code)}</a></td><td><span class="mono">${esc(w.asset_code||'–')}</span><div class="small muted">${esc(w.location||'')}</div></td><td>${prioTag(w.priority)}</td><td>${slaTag(w)}</td><td class="wrap">${esc(shortName(w.assignee)||'–')}</td><td>${statusPill(w.status)}</td></tr>`).join('')}
         </tbody></table></div>` : '<div class="empty">ยังไม่มีใบงาน</div>'}
       </section>
 
@@ -1674,6 +1711,8 @@ PAGES.pm = async () => {
     return true; });
   const ST = { on:['เปิดใช้งาน','st-done'], soon:['ใกล้ถึงกำหนด','st-in_progress'], overdue:['เลยกำหนด','st-cancelled-bad'], off:['ปิดใช้งาน','st-closed'] };
   $('#view').innerHTML = `
+  <div class="page-head"><div><h1>แผนบำรุงรักษาเชิงป้องกัน (PM)</h1><p>${fmtN(plans.length,0)} แผน · เปิดใช้งาน ${fmtN(active.length,0)} แผน · เรียงตามวันครบกำหนดถัดไป</p></div>
+    ${can('pm.manage')?`<div class="row"><button class="btn" id="pmGen" title="สร้างใบงานให้แผนที่ครบกำหนดภายใน ${S.cfg.targets.pm_ahead_days} วัน">↻ สร้างงานล่วงหน้า</button><button class="btn primary" id="pmNew">+ สร้างแผนใหม่</button></div>`:''}</div>
   <section class="kpis">
     ${kpi('pm','แผนที่เปิดใช้งาน', `${active.length} <span class="kpi-of">/ ${plans.length}</span>`, '', 'แผนทั้งหมดในระบบ', 'accent')}
     ${kpi('check','งาน PM วันนี้', `${todayW.filter(w=>w.completed_at).length} <span class="kpi-of">/ ${todayW.length}</span>`, '', 'เสร็จแล้ว / ทั้งหมด', 'ok')}
@@ -1682,25 +1721,24 @@ PAGES.pm = async () => {
     ${kpi('check','ปิดงานเดือนนี้', closedMonth, '', 'ใบงาน PM ที่ทำเสร็จ', 'ok')}
     ${kpi('sla','PM Compliance', compliance==null?'–':fmtN(compliance,1), compliance==null?'':'%', 'ทำเสร็จทันกำหนดในเดือนนี้', 'violet')}
   </section>
-  <section class="card">
+  <section class="filterbar">
     <div class="pm-top">
       <div class="row">
         <button class="qchip ${f.quick==='today'?'on':''}" data-quick="today">${svgI('check')} งาน PM วันนี้ <b>${todayW.length}</b></button>
         <button class="qchip ${f.quick==='overdue'?'on':''}" data-quick="overdue">${svgI('clock')} เลยกำหนด <b>${overdueN}</b></button>
         <a class="qchip" href="#calendar">${svgI('calendar')} ปฏิทินงาน</a>
       </div>
-      ${can('pm.manage')?`<div class="row"><button class="btn" id="pmGen" title="สร้างใบงานให้แผนที่ครบกำหนดภายใน ${S.cfg.targets.pm_ahead_days} วัน">↻ สร้างงานล่วงหน้า</button><button class="btn primary" id="pmNew">+ สร้างแผนใหม่</button></div>`:''}
     </div>
     <div class="pm-filters">
       <label class="field"><span>ค้นหา</span><input class="input" id="pf-term" placeholder="รหัสแผน / ชื่อแผน / อุปกรณ์" value="${esc(f.term)}"></label>
-      <label class="field"><span>ทีม</span><select class="input" id="pf-team">${teamOptions(f.team,'ทั้งหมด')}</select></label>
-      <label class="field"><span>รอบความถี่</span><select class="input" id="pf-rec"><option value="">ทั้งหมด</option>${Object.entries(RECUR).map(([k,v])=>`<option value="${k}" ${k===f.rec?'selected':''}>${v}</option>`).join('')}</select></label>
+      <label class="field"><span>ทีม</span><select class="input" id="pf-team">${teamOptions(f.team,'ทุกทีม')}</select></label>
+      <label class="field"><span>รอบความถี่</span><select class="input" id="pf-rec"><option value="">ทุกรอบความถี่</option>${Object.entries(RECUR).map(([k,v])=>`<option value="${k}" ${k===f.rec?'selected':''}>${v}</option>`).join('')}</select></label>
       <label class="field"><span>สถานะ</span><select class="input" id="pf-st">${[['','ทุกสถานะ'],['active','เปิดใช้งาน'],['overdue','เลยกำหนด'],['off','ปิดใช้งาน']].map(([k,v])=>`<option value="${k}" ${k===f.st?'selected':''}>${v}</option>`).join('')}</select></label>
       ${f.term||f.team||f.rec||f.st||f.quick?'<button class="btn" id="pf-clear" style="align-self:end">ล้างตัวกรอง</button>':''}
     </div>
   </section>
   <section class="card">
-    <div class="card-head"><h2>พบ ${rows.length} แผน</h2><span class="small muted">เรียงตามวันครบกำหนดถัดไป</span></div>
+    <div class="card-head"><h2>พบ ${rows.length} แผน</h2></div>
     ${rows.length?`<div class="tbl-wrap"><table class="compact pm-tbl"><thead><tr><th>รหัสแผน</th><th>ชื่อแผน</th><th>อุปกรณ์</th><th>พื้นที่</th><th>ทีม</th><th>รอบ</th><th>เวลาโดยประมาณ</th><th>ครบกำหนดถัดไป</th><th>ทำล่าสุด</th><th>สถานะ</th><th></th></tr></thead><tbody>
     ${rows.map(p=>{ const s=planState(p); return `<tr>
       <td class="mono">${esc(p.code||'–')}</td><td style="white-space:normal;min-width:180px">${esc(p.name)}</td>
@@ -2269,6 +2307,8 @@ PAGES.tech = async () => {
   const teams = S.teams.map(t=>{ const mem = activeSt.filter(s=>s.p.team_id===t.id); const n = wos.filter(w=>w.team_id===t.id && OPEN.includes(w.status)).length; return { t, mem:mem.length, n, avg: mem.length? n/mem.length : 0 }; });
   const tMax = Math.max(1,...teams.map(x=>x.n));
   $('#view').innerHTML = `
+  <div class="page-head"><div><h1>ช่างซ่อมบำรุง</h1><p>${fmtN(activeSt.length,0)} คนที่ใช้งานได้ · ภาระงานและผลงานรายคน</p></div>
+    ${admin?'<button class="btn primary" id="tAddBtn">+ เพิ่มช่าง</button>':''}</div>
   <section class="kpis k4">
     ${kpi('tech','ช่างที่ใช้งานได้', `${activeSt.length} <span class="kpi-of">/ ${st.length}</span>`, '', 'ช่างและหัวหน้างานในระบบ', 'accent')}
     ${kpi('wo','งานค้างทั้งระบบ', fmtN(totalOpen,0), '', 'ใบงานที่ยังไม่เสร็จ', 'info')}
@@ -2277,13 +2317,12 @@ PAGES.tech = async () => {
   </section>
   <div class="tech-layout">
     <div class="tech-main">
-      <section class="card">
+      <section class="filterbar">
         <div class="pm-filters tf">
           <label class="field"><span>ค้นหา</span><input class="input" id="tf-term" placeholder="ชื่อ / ตำแหน่ง / ชื่อผู้ใช้" value="${esc(f.term)}"></label>
-          <label class="field"><span>ทีม</span><select class="input" id="tf-team">${teamOptions(f.team,'ทั้งหมด')}</select></label>
+          <label class="field"><span>ทีม</span><select class="input" id="tf-team">${teamOptions(f.team,'ทุกทีม')}</select></label>
           <label class="field"><span>เรียงตาม</span><select class="input" id="tf-sort">${[['name','ชื่อ'],['load','ภาระงานมากสุด'],['over','เกินกำหนดมากสุด'],['sla','SLA ต่ำสุด']].map(([k,v])=>`<option value="${k}" ${k===f.sort?'selected':''}>${v}</option>`).join('')}</select></label>
           <label class="check small" style="align-self:end;padding-bottom:9px"><input type="checkbox" id="tf-off" ${f.showOff?'checked':''}> แสดงที่ปิดใช้งาน</label>
-          ${admin?'<button class="btn primary" id="tAddBtn" style="align-self:end">+ เพิ่มช่าง</button>':''}
         </div>
       </section>
       ${rows.length?`<div class="tech-cards">${rows.map(s=>{ const team=S.teams.find(t=>t.id===s.p.team_id); const pct = s.open? s.over/s.open*100 : 0;
@@ -3170,7 +3209,7 @@ PAGES.settings = async () => {
   const canSet = can('setting.manage'), canUsers = can('user.manage');
   if (!canSet && settingsTab!=='users') settingsTab = 'users';
   const tabs = [['general','ทั่วไป','settings',canSet],['notify','การแจ้งเตือน','bell',canSet],['master','ข้อมูลหลัก','wo',canSet],['system','ข้อมูลระบบ','reports',canSet]].filter(t=>t[3]);
-  $('#view').innerHTML = `<section class="card set-tabs-card"><div class="set-tabs">${tabs.map(([k,v,i])=>`<button class="qchip ${settingsTab===k?'on':''}" data-stab="${k}">${svgI(i)} ${v}</button>`).join('')}</div></section><div id="setBody" class="set-body"><div class="loading">กำลังโหลด…</div></div>`;
+  $('#view').innerHTML = `<div class="page-head"><div><h1>ตั้งค่าระบบ</h1><p>ข้อมูลองค์กร การแจ้งเตือน ข้อมูลหลัก และสถานะระบบ</p></div></div><section class="card set-tabs-card"><div class="set-tabs">${tabs.map(([k,v,i])=>`<button class="qchip ${settingsTab===k?'on':''}" data-stab="${k}">${svgI(i)} ${v}</button>`).join('')}</div></section><div id="setBody" class="set-body"><div class="loading">กำลังโหลด…</div></div>`;
   $$('[data-stab]').forEach(b=>b.onclick=()=>{ settingsTab=b.dataset.stab; PAGES.settings().catch(fail); });
   const saveKey = async (key, value, msg) => { await q(sb.from('app_settings').upsert({ key, value, updated_at:new Date().toISOString(), updated_by:uid() })); S.cfg[key] = { ...CFG_DEFAULT[key], ...value }; toast(msg||'บันทึกการตั้งค่าแล้ว'); };
   const B = $('#setBody');
@@ -3410,8 +3449,8 @@ async function usersPage(B, again = () => PAGES.users().catch(fail)){
     <div class="card-head"><h2>พบ ${rows.length} บัญชี</h2><div class="row"><button class="btn sm" id="uImp">${svgI('download')} นำเข้ารายชื่อพนักงาน (Excel)</button><button class="btn primary sm" id="uAdd">+ เพิ่มผู้ใช้</button></div></div>
     <div class="pm-filters uf">
       <label class="field"><span>ค้นหา</span><input class="input" id="uf-term" placeholder="ชื่อผู้ใช้ / ชื่อ / อีเมล" value="${esc(f.term)}"></label>
-      <label class="field"><span>บทบาท</span><select class="input" id="uf-role"><option value="">ทั้งหมด</option>${ROLE_ORDER.map(r=>`<option value="${r}" ${r===f.role?'selected':''}>${ROLE[r]}</option>`).join('')}</select></label>
-      <label class="field"><span>สถานะ</span><select class="input" id="uf-st"><option value="" ${f.st===''?'selected':''}>ทั้งหมด</option><option value="on" ${f.st==='on'?'selected':''}>ใช้งาน</option><option value="off" ${f.st==='off'?'selected':''}>ปิดใช้งาน / ลบแล้ว</option></select></label>
+      <label class="field"><span>บทบาท</span><select class="input" id="uf-role"><option value="">ทุกบทบาท</option>${ROLE_ORDER.map(r=>`<option value="${r}" ${r===f.role?'selected':''}>${ROLE[r]}</option>`).join('')}</select></label>
+      <label class="field"><span>สถานะ</span><select class="input" id="uf-st"><option value="" ${f.st===''?'selected':''}>ทุกสถานะ</option><option value="on" ${f.st==='on'?'selected':''}>ใช้งานอยู่</option><option value="off" ${f.st==='off'?'selected':''}>ปิดใช้งาน / ลบแล้ว</option></select></label>
       ${f.term||f.role||f.st!=='on'?'<button class="btn" id="uf-clear" style="align-self:end">ล้างตัวกรอง</button>':''}
     </div>
     <div class="tbl-wrap"><table class="compact"><thead><tr><th>ชื่อผู้ใช้</th><th>ชื่อ-นามสกุล</th><th>ตำแหน่ง</th><th>บทบาท</th><th>ทีม</th><th>อีเมล</th><th class="num">งานค้าง</th><th>ล็อกอินล่าสุด</th><th>สถานะ</th><th></th></tr></thead><tbody>
