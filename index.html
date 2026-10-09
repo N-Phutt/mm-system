@@ -10,9 +10,11 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Maintenance">
 <title>Maintenance System</title>
+<link rel="preconnect" href="https://jtfeumjnqzozlmqlpcio.supabase.co" crossorigin>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" media="print" onload="this.media='all'">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <style>
 :root{
@@ -719,6 +721,10 @@ td .small,td small{font-size:12px}
 @media (max-width:1200px){.rq-tabs{grid-template-columns:repeat(3,minmax(0,1fr))}.rq-row{grid-template-columns:170px minmax(0,1fr) 190px}.rq-prog{grid-column:2/4;justify-items:start;grid-auto-flow:column;align-items:center;justify-content:start;gap:10px}}
 @media (max-width:640px){.rq-tabs{display:flex;overflow-x:auto;gap:8px;margin:0 -16px;padding:0 16px 4px;scrollbar-width:none;scroll-snap-type:x proximity}.rq-tabs::-webkit-scrollbar{display:none}.rq-tab{flex:none;padding:8px 14px;border-radius:999px;scroll-snap-align:start;gap:10px}.rq-tab b{font-size:15px}.rq-card-list{padding:0}
   .rq-row{grid-template-columns:1fr;gap:8px;padding:14px}.rq-badge{justify-self:start;grid-auto-flow:column;align-items:baseline;gap:8px}.rq-prog{grid-column:auto}}
+
+.upd-bar{position:fixed;left:50%;transform:translateX(-50%);bottom:18px;z-index:200;display:flex;align-items:center;gap:10px;padding:10px 12px 10px 16px;background:var(--surface);border:1px solid var(--accent);border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.18);font-size:14px;max-width:calc(100vw - 24px)}
+.upd-bar span{white-space:nowrap}
+@media (max-width:860px){.upd-bar{bottom:84px;left:12px;right:12px;transform:none;max-width:none;justify-content:space-between}}
 </style>
 </head>
 <body>
@@ -728,7 +734,7 @@ td .small,td small{font-size:12px}
 /* ============ CONFIG ============ */
 const SB_URL = 'https://jtfeumjnqzozlmqlpcio.supabase.co';
 const SB_KEY = 'sb_publishable_m33nyCNfh5nKma5LxgV85g_ZLeQa052';
-const APP_VERSION = '1.8.1';
+const APP_VERSION = '1.9.0';
 const TZ = 'Asia/Bangkok';
 
 const sb = supabase.createClient(SB_URL, SB_KEY, { auth: { persistSession: true, autoRefreshToken: true } });
@@ -934,16 +940,21 @@ async function boot(){
   try { await bootInner(); } finally { booting = false; }
 }
 async function bootInner(){
-  await loadCfg();
-  const { data:{ session } } = await sb.auth.getSession();
+  const { data:{ session } } = await sb.auth.getSession();   // local, no network
   S.session = session;
-  if (!session) return renderLogin();
+  if (!session) { await loadCfg(); return renderLogin(); }
   try {
-    const { data } = await q(sb.from('profiles').select('*').eq('id', session.user.id).single());
+    // โหลดพร้อมกันทั้งหมดในรอบเดียว (เดิมโหลดทีละขั้น 6 รอบ)
+    const [, prof, perms] = await Promise.all([
+      loadCfg(),
+      q(sb.from('profiles').select('*').eq('id', session.user.id).single()),
+      sb.rpc('my_perms'),
+      loadRefs()
+    ]);
+    const data = prof.data;
     S.profile = data;
-    S.perms = new Set((await sb.rpc('my_perms')).data || []);
+    S.perms = new Set(perms.data || []);
     if (!data.active) { await sb.auth.signOut(); return renderLogin('บัญชีนี้ถูกปิดการใช้งาน'); }
-    await loadRefs();
     renderShell();
   } catch (e) { fail(e); renderLogin(thaiErr(e)); }
 }
@@ -953,14 +964,15 @@ sb.auth.onAuthStateChange((ev, session) => {
 });
 
 async function loadRefs(){
-  const [t,p,l] = await Promise.all([
+  const [t,p,l,sl,et] = await Promise.all([
     sb.from('teams').select('*').order('sort_order').order('name'),
     sb.from('profiles').select('id,full_name,username,role,team_id,active,department,phone').order('full_name'),
-    sb.from('locations').select('id,code,name,building,floor,active,sort_order').order('sort_order').order('name')
+    sb.from('locations').select('id,code,name,building,floor,active,sort_order').order('sort_order').order('name'),
+    sb.from('sla_policies').select('*'),
+    sb.from('equipment_types').select('*').order('sort_order').order('name')
   ]);
   S.teams = t.data||[]; S.people = p.data||[]; S.locations = l.data||[];
-  S.sla = (await sb.from('sla_policies').select('*')).data || [];
-  S.eqTypes = (await sb.from('equipment_types').select('*').order('sort_order').order('name')).data || [];
+  S.sla = sl.data || []; S.eqTypes = et.data || [];
 }
 
 /* ============ SHELL & ROUTER ============ */
@@ -1032,12 +1044,12 @@ function renderShell(){
   }
   if ($('#bellBtn')) { $('#bellBtn').onclick = e => { e.stopPropagation(); const p=$('#bellPanel'); p.hidden=!p.hidden; if (!p.hidden) paintBell(); };
     document.addEventListener('click', e => { const p=$('#bellPanel'); if (p && !p.hidden && !e.target.closest('.bell-wrap')) p.hidden=true; });
-    clearInterval(alertTimer); refreshAlerts(); alertTimer = setInterval(refreshAlerts, 120000); }
+    clearInterval(alertTimer); setTimeout(refreshAlerts, 1200); alertTimer = setInterval(refreshAlerts, 120000); }
   $('#menuBtn').onclick = () => { $('#side').classList.add('open'); $('#sideScrim').hidden=false; };
   $('#sideScrim').onclick = closeSide;
   const tick = () => { const c=$('#clock'); if (c) c.textContent = dtf.format(new Date()); };
   tick(); setInterval(tick, 30000);
-  window.onhashchange = route; route(); refreshOpenCount();
+  window.onhashchange = route; route(); setTimeout(refreshOpenCount, 900);
 }
 function closeSide(){ $('#side')?.classList.remove('open'); const s=$('#sideScrim'); if(s) s.hidden=true; }
 async function refreshOpenCount(){
@@ -3107,6 +3119,19 @@ let deferredInstall = null;
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredInstall = e; const b=$('#installBtn'); if (b) b.hidden=false; });
 if ('serviceWorker' in navigator && /^https?:/.test(location.protocol) && location.hostname !== 'localhost') {
   window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(()=>{}));
+  // เปิดแอปจากแคชทันที แล้วอัปเดตเบื้องหลัง — ถ้ามีเวอร์ชันใหม่ ให้ผู้ใช้กดโหลดใหม่ได้
+  navigator.serviceWorker.addEventListener('message', ev => {
+    if (ev.data?.type !== 'app-update' || document.getElementById('updBar')) return;
+    const bar = document.createElement('div'); bar.id = 'updBar'; bar.className = 'upd-bar';
+    bar.innerHTML = '<span>มีเวอร์ชันใหม่ของระบบ</span><button class="btn sm primary" type="button">โหลดเวอร์ชันใหม่</button><button class="icon-btn" type="button" aria-label="ปิด">✕</button>';
+    bar.querySelector('.primary').onclick = () => location.reload();
+    bar.querySelector('.icon-btn').onclick = () => bar.remove();
+    document.body.appendChild(bar);
+  });
+  // ถามเผื่อกรณีที่ตรวจพบเวอร์ชันใหม่ก่อนหน้าเว็บโหลดเสร็จ
+  const hello = () => navigator.serviceWorker.controller?.postMessage({ type:'hello' });
+  window.addEventListener('load', () => setTimeout(hello, 1500));
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') hello(); });
 }
 
 /* ============ ENGINEER VERIFICATION ============ */
