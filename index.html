@@ -728,6 +728,8 @@ td .small,td small{font-size:12px}
 .boot-stuck{min-height:100vh;display:grid;place-items:center;padding:20px}
 .boot-stuck .card{max-width:420px;width:100%;text-align:center;gap:12px}
 .boot-stuck .btn{width:100%}
+.backup-card{grid-column:1/-1}
+.backup-card h2{display:flex;align-items:center;gap:8px}.backup-card h2 svg{width:18px;height:18px}
 </style>
 </head>
 <body>
@@ -737,7 +739,7 @@ td .small,td small{font-size:12px}
 /* ============ CONFIG ============ */
 const SB_URL = 'https://jtfeumjnqzozlmqlpcio.supabase.co';
 const SB_KEY = 'sb_publishable_m33nyCNfh5nKma5LxgV85g_ZLeQa052';
-const APP_VERSION = '1.9.1';
+const APP_VERSION = '1.10.0';
 const TZ = 'Asia/Bangkok';
 
 // ทุกคำขอมีเวลาจำกัด — เน็ตมือถือที่ค้างจะไม่ทำให้แอปรอไม่มีที่สิ้นสุด
@@ -3507,6 +3509,8 @@ PAGES.settings = async () => {
       <section class="card"><h2>จำนวนข้อมูลในระบบ</h2>
         <div class="sys-grid">${kv.map(([l,v])=>`<div><span class="small muted">${l}</span><b class="mono">${typeof v==='number'?fmtN(v,0):esc(v)}</b></div>`).join('')}</div>
         <div class="row"><button class="btn" id="expEq">ดาวน์โหลดทะเบียนอุปกรณ์ (CSV)</button><button class="btn" id="expPt">ดาวน์โหลดรายการอะไหล่ (CSV)</button></div></section></div>`;
+    B.insertAdjacentHTML('beforeend', backupCardHTML());
+    bindBackup(again);
     $('#sysRe').onclick=again;
     $('#expEq').onclick=async()=>{ try { const {data}=await q(sb.from('equipment').select('asset_code,name,category,status,manufacturer,model,serial_number,purchase_date,warranty_expiry,notes,location:location_id(name)').order('asset_code').limit(20000));
       downloadCsv(`equipment-${today()}.csv`, [['รหัสทรัพย์สิน','ชื่อ','หมวด','สถานะ','ยี่ห้อ','รุ่น','Serial','วันที่ซื้อ','ประกันถึง','พื้นที่','หมายเหตุ'], ...data.map(e=>[e.asset_code,e.name,e.category,e.status,e.manufacturer,e.model,e.serial_number,e.purchase_date,e.warranty_expiry,e.location?.name,e.notes])]); } catch(e){ fail(e); } };
@@ -3516,6 +3520,59 @@ PAGES.settings = async () => {
 
   else if (settingsTab==='users') { location.hash = '#users'; }
 };
+
+/* ============ สำรองข้อมูลทั้งหมดเป็น Excel ============ */
+// [ตาราง, ชื่อชีต, เรียงตาม]  (ไม่รวมตารางที่มีรหัสลับ เช่น notify_config และรหัสผ่านผู้ใช้)
+const BACKUP_TABLES = [
+  ['work_orders','ใบงาน','created_at'],['work_order_events','ประวัติใบงาน','created_at'],['work_order_parts','อะไหล่ที่ใช้ในใบงาน','used_at'],
+  ['work_order_attachments','ไฟล์แนบ(รายการ)','created_at'],['pm_results','ผลตรวจ PM','work_order_id'],['pm_schedules','แผน PM','code'],
+  ['equipment','อุปกรณ์','asset_code'],['equipment_docs','เอกสารอุปกรณ์','created_at'],['equipment_types','ประเภทอุปกรณ์','sort_order'],
+  ['locations','พื้นที่','sort_order'],['teams','ทีม','sort_order'],['spare_parts','อะไหล่','part_code'],['stock_movements','เคลื่อนไหวสต็อก','created_at'],
+  ['profiles','ผู้ใช้','username'],['role_permissions','สิทธิ์ตามบทบาท','role'],['sla_policies','SLA','priority'],['app_settings','ตั้งค่าระบบ','key']];
+const backupAgeDays = () => { const t = S.cfg.backup?.last; return t ? Math.floor((Date.now() - new Date(t)) / 864e5) : null; };
+function backupCardHTML(){
+  const b = S.cfg.backup || {}, age = backupAgeDays();
+  return `<section class="card backup-card"><div class="card-head"><h2>${svgI('download')} สำรองข้อมูลทั้งหมด</h2>
+      ${age==null?'<span class="pill st-cancelled-bad">ยังไม่เคยสำรอง</span>':`<span class="pill ${age>7?'st-on_hold':'st-done'}">สำรองล่าสุด ${age===0?'วันนี้':age+' วันที่แล้ว'}</span>`}</div>
+    <p class="small muted" style="margin:0">ดาวน์โหลดข้อมูลทุกตาราง (ใบงาน ประวัติ อุปกรณ์ แผน PM อะไหล่ ผู้ใช้ ตั้งค่า ฯลฯ) เป็นไฟล์ Excel ไฟล์เดียว แยกชีตตามตาราง · ไม่รวมไฟล์รูป/วิดีโอและรหัสผ่าน
+      · แนะนำให้สำรองอย่างน้อยสัปดาห์ละครั้ง และเก็บไฟล์ไว้ใน Google Drive / OneDrive</p>
+    ${b.last?`<p class="small" style="margin:0">ครั้งล่าสุด: ${fmtDT(b.last)} โดย ${esc(b.by||'–')} · ${fmtN(b.rows||0,0)} แถว</p>`:''}
+    <div class="row"><button class="btn primary" id="bkGo">${svgI('download')} สำรองข้อมูลทั้งหมดเป็น Excel</button><span class="small muted" id="bkMsg"></span></div></section>`;
+}
+function bindBackup(after){
+  const btn = $('#bkGo'); if (!btn) return;
+  btn.onclick = async () => {
+    btn.disabled = true; const msg = $('#bkMsg'); const sheets = []; let total = 0;
+    try {
+      await loadXLSX();
+      for (const [t, name, ord] of BACKUP_TABLES) {
+        msg.textContent = `กำลังดึง ${name}…`;
+        const rows = []; let err = null;
+        for (let i = 0; ; i += 1000) {
+          const { data, error } = await sb.from(t).select('*').order(ord, { nullsFirst:false }).range(i, i + 999);
+          if (error) { err = error; break; }
+          rows.push(...data); if (data.length < 1000) break;
+        }
+        const flat = rows.map(r => Object.fromEntries(Object.entries(r).map(([k, v]) => [k, v != null && typeof v === 'object' ? JSON.stringify(v).slice(0, 32000) : (typeof v === 'string' ? v.slice(0, 32000) : v)])));
+        sheets.push({ t, name, rows: flat, err: err?.message }); total += flat.length;
+      }
+      msg.textContent = 'กำลังสร้างไฟล์…';
+      const wb = XLSX.utils.book_new();
+      const info = [['ระบบ', S.cfg.general.name_en || 'Maintenance System'], ['สำรองเมื่อ', new Date().toLocaleString('th-TH')], ['โดย', S.profile.full_name], ['เวอร์ชันแอป', APP_VERSION], ['รวม (แถว)', total], [], ['ชีต', 'ตาราง', 'จำนวนแถว', 'หมายเหตุ'],
+        ...sheets.map(x => [x.name, x.t, x.rows.length, x.err ? 'ดึงไม่สำเร็จ: ' + x.err : ''])];
+      const wsInfo = XLSX.utils.aoa_to_sheet(info); wsInfo['!cols'] = [{ wch: 22 }, { wch: 26 }, { wch: 12 }, { wch: 40 }];
+      XLSX.utils.book_append_sheet(wb, wsInfo, 'สรุป');
+      sheets.forEach(x => { const ws = x.rows.length ? XLSX.utils.json_to_sheet(x.rows) : XLSX.utils.aoa_to_sheet([['(ไม่มีข้อมูล)']]);
+        XLSX.utils.book_append_sheet(wb, ws, x.name.slice(0, 31)); });
+      const fname = `MMS-backup-${today()}.xlsx`;
+      XLSX.writeFile(wb, fname);
+      const rec = { last: new Date().toISOString(), by: S.profile.full_name, rows: total };
+      try { await q(sb.from('app_settings').upsert({ key:'backup', value:rec, updated_at:rec.last, updated_by:uid() })); S.cfg.backup = rec; } catch {}
+      toast(`สำรองข้อมูลแล้ว ${fmtN(total,0)} แถว · ไฟล์ ${fname}`);
+      after && after();
+    } catch (e) { fail(e); msg.textContent = ''; btn.disabled = false; }
+  };
+}
 
 const userFilter = { term:'', role:'', st:'on' };
 PAGES.users = async () => {
