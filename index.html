@@ -739,7 +739,7 @@ td .small,td small{font-size:12px}
 /* ============ CONFIG ============ */
 const SB_URL = 'https://jtfeumjnqzozlmqlpcio.supabase.co';
 const SB_KEY = 'sb_publishable_m33nyCNfh5nKma5LxgV85g_ZLeQa052';
-const APP_VERSION = '1.10.0';
+const APP_VERSION = '1.10.1';
 const TZ = 'Asia/Bangkok';
 
 // ทุกคำขอมีเวลาจำกัด — เน็ตมือถือที่ค้างจะไม่ทำให้แอปรอไม่มีที่สิ้นสุด
@@ -2730,14 +2730,14 @@ function compressImage(file, max=1600, quality=0.8){
   });
 }
 /* media (photo + video) */
-const VIDEO_MAX_MB = 50;
+const VIDEO_MAX_MB = 20;
 const isVideo = f => /^video\//.test(f?.type || f?.content_type || '') || /\.(mp4|mov|webm|3gp)$/i.test(f?.storage_path || f?.name || '');
 const VIDEO_TYPES = { 'video/mp4':'mp4', 'video/quicktime':'mov', 'video/webm':'webm', 'video/3gpp':'3gp' };
 function checkMedia(f){
   if (/^image\//.test(f.type)) return null;
   if (!isVideo(f)) return `${f.name}: แนบได้เฉพาะรูปภาพหรือวิดีโอ`;
   if (!VIDEO_TYPES[f.type || 'video/mp4'] && f.type) return `${f.name}: รองรับวิดีโอ MP4 / MOV / WEBM`;
-  if (f.size > VIDEO_MAX_MB*1024*1024) return `${f.name}: วิดีโอใหญ่ ${fmtN(f.size/1048576,0)} MB เกิน ${VIDEO_MAX_MB} MB (ถ่ายสั้นลง ไม่เกิน ~30 วินาที)`;
+  if (f.size > VIDEO_MAX_MB*1024*1024) return `${f.name}: วิดีโอใหญ่ ${fmtN(f.size/1048576,0)} MB เกิน ${VIDEO_MAX_MB} MB (ถ่ายสั้นลง ~15 วินาที หรือตั้งกล้องเป็น 720p)`;
   return null;
 }
 async function uploadMedia(woId, kind, files, name){
