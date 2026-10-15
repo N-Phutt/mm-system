@@ -1,0 +1,38 @@
+# Keeps the free Supabase project from being paused after 7 days without activity.
+# Runs once a day and makes one small real database query through the public API
+# (the same anonymous lookup the QR "report a fault" page uses). No secrets needed:
+# the publishable key is read from index.html, where it is already public.
+name: Keep database awake
+
+on:
+  schedule:
+    - cron: '17 1 * * *'   # every day 08:17 Bangkok time
+  workflow_dispatch: {}     # "Run workflow" button for a manual check
+
+permissions:
+  contents: read
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: index.html
+          sparse-checkout-cone-mode: false
+      - name: Query the database
+        run: |
+          URL=$(grep -oE "const SB_URL = '[^']+'" index.html | cut -d"'" -f2)
+          KEY=$(grep -oE "const SB_KEY = '[^']+'" index.html | cut -d"'" -f2)
+          for i in 1 2 3; do
+            CODE=$(curl -s -o resp.txt -w '%{http_code}' --max-time 30 \
+              -X POST "$URL/rest/v1/rpc/public_equipment_card" \
+              -H "apikey: $KEY" -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" \
+              -d '{"p_code":"KEEPALIVE"}')
+            echo "Attempt $i -> HTTP $CODE"
+            if [ "$CODE" = "200" ]; then echo "Database is awake ✅"; exit 0; fi
+            sleep 20
+          done
+          echo "::error::Database did not answer (HTTP $CODE). It may be paused - restore it at https://supabase.com/dashboard"
+          cat resp.txt; exit 1
